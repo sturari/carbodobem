@@ -23,7 +23,8 @@ const inputSchema = z.object({
 
 /**
  * Cria uma preferência de pagamento no Mercado Pago (Checkout Pro).
- * Usa MERCADOPAGO_ACCESS_TOKEN_TEST (sandbox) por padrão; troque para PROD ao ir ao ar.
+ * Prioriza MERCADOPAGO_ACCESS_TOKEN_PROD (produção). Se não houver,
+ * cai para MERCADOPAGO_ACCESS_TOKEN_TEST (sandbox) — útil para testes.
  */
 export const criarPreferenciaMP = createServerFn({ method: "POST" })
   .inputValidator((raw) => inputSchema.parse(raw))
