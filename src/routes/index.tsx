@@ -42,11 +42,11 @@ function Home() {
             </span>
             <h1 className="mt-4 font-display text-4xl font-extrabold tracking-tight text-foreground md:text-5xl">
               Comida de verdade,{" "}
-              <span className="text-primary">no horário que você escolher.</span>
+              <span className="text-primary">na hora que você escolher.</span>
             </h1>
             <p className="mt-4 text-lg text-muted-foreground">
-              Refeições prontas ultracongeladas, feitas por chef, entregues em Brasília.
-              Sem cadastro, sem enrolação — escolha, aqueça e pronto.
+              Refeições prontas ultracongeladas, feitas por chef.
+              Praticidade e satisfação — escolha, aqueça e aproveite.
             </p>
             <div className="mt-6 flex flex-wrap gap-4 text-sm text-muted-foreground">
               <div className="flex items-center gap-1.5">
