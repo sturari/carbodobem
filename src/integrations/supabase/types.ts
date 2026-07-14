@@ -14,6 +14,21 @@ export type Database = {
   }
   public: {
     Tables: {
+      _rls_test: {
+        Row: {
+          id: number
+          val: string | null
+        }
+        Insert: {
+          id?: number
+          val?: string | null
+        }
+        Update: {
+          id?: number
+          val?: string | null
+        }
+        Relationships: []
+      }
       areas_cobertura: {
         Row: {
           ativo: boolean
