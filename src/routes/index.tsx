@@ -44,8 +44,8 @@ function Home() {
               Comida de verdade,{" "}
               <span className="text-primary">na hora que você escolher.</span>
             </h1>
-            <p className="mt-4 text-lg text-muted-foreground">
-              Refeições prontas ultracongeladas, feitas por chef.
+            <p className="mt-4 text-lg text-muted-foreground whitespace-pre-line">
+              Refeições prontas ultracongeladas, feitas por chef.{"\n"}
               Praticidade e satisfação — escolha, aqueça e aproveite.
             </p>
             <div className="mt-6 flex flex-wrap gap-4 text-sm text-muted-foreground">
