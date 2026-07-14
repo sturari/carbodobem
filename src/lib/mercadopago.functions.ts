@@ -23,61 +23,78 @@ const inputSchema = z.object({
 
 /**
  * Cria uma preferência de pagamento no Mercado Pago (Checkout Pro).
- *
- * ⚠️ ATUALMENTE MOCKADO — devolve um init_point falso.
- * A chamada real está comentada abaixo. Para ativar:
- *   1. Preencher MERCADOPAGO_ACCESS_TOKEN no .env
- *   2. Descomentar o bloco `fetch("https://api.mercadopago.com/checkout/preferences" ...)`
- *   3. Remover o retorno mock
+ * Usa MERCADOPAGO_ACCESS_TOKEN_TEST (sandbox) por padrão; troque para PROD ao ir ao ar.
  */
 export const criarPreferenciaMP = createServerFn({ method: "POST" })
   .inputValidator((raw) => inputSchema.parse(raw))
   .handler(async ({ data }): Promise<CreatePreferenceResult> => {
-    const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN;
-    const publicUrl = process.env.PUBLIC_APP_URL ?? "http://localhost:8080";
+    const accessToken =
+      process.env.MERCADOPAGO_ACCESS_TOKEN_PROD ||
+      process.env.MERCADOPAGO_ACCESS_TOKEN_TEST;
 
-    // ------ MOCK (remover ao integrar de verdade) ------
-    if (!accessToken || accessToken.startsWith("TEST-xxxx") || accessToken === "") {
-      return {
-        id: `MOCK-${data.pedido_id}`,
-        init_point: `${publicUrl}/checkout/sucesso?pedido=${data.pedido_id}&mock=1`,
-        sandbox_init_point: `${publicUrl}/checkout/sucesso?pedido=${data.pedido_id}&mock=1`,
-      };
+    // URL pública para back_urls e webhook. Em produção defina PUBLIC_APP_URL
+    // (ex.: https://carbodobem.com.br) via secret; localhost quebra back_urls do MP.
+    const publicUrl =
+      process.env.PUBLIC_APP_URL ??
+      "https://project--58f6f86b-1d2b-449d-b777-7408cba43a69.lovable.app";
+
+    if (!accessToken) {
+      throw new Error("MERCADOPAGO_ACCESS_TOKEN não configurado.");
     }
 
-    // ------ CHAMADA REAL (stub — habilitar quando tiver credenciais) ------
-    /*
+    const body = {
+      items: data.items.map((i) => ({
+        id: i.id,
+        title: i.title,
+        quantity: i.quantity,
+        unit_price: i.unit_price,
+        currency_id: "BRL" as const,
+      })),
+      payer: {
+        name: data.payer.name,
+        email: data.payer.email,
+        ...(data.payer.phone
+          ? { phone: { number: data.payer.phone } }
+          : {}),
+      },
+      external_reference: data.pedido_id,
+      back_urls: {
+        success: `${publicUrl}/checkout/sucesso?pedido=${data.pedido_id}`,
+        failure: `${publicUrl}/checkout/sucesso?pedido=${data.pedido_id}&status=failure`,
+        pending: `${publicUrl}/checkout/sucesso?pedido=${data.pedido_id}&status=pending`,
+      },
+      auto_return: "approved",
+      notification_url: `${publicUrl}/api/public/webhooks/mercadopago`,
+      statement_descriptor: "CARBO DO BEM",
+    };
+
     const res = await fetch("https://api.mercadopago.com/checkout/preferences", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${accessToken}`,
       },
-      body: JSON.stringify({
-        items: data.items.map((i) => ({ ...i, currency_id: "BRL" })),
-        payer: data.payer,
-        external_reference: data.pedido_id,
-        back_urls: {
-          success: `${publicUrl}/checkout/sucesso?pedido=${data.pedido_id}`,
-          failure: `${publicUrl}/checkout/falha?pedido=${data.pedido_id}`,
-          pending: `${publicUrl}/checkout/pendente?pedido=${data.pedido_id}`,
-        },
-        auto_return: "approved",
-        notification_url: `${publicUrl}/api/public/webhooks/mercadopago`,
-        payment_methods: {
-          // PIX, cartão, boleto liberados por padrão
-        },
-      }),
+      body: JSON.stringify(body),
     });
-    if (!res.ok) throw new Error(`Mercado Pago erro ${res.status}`);
-    const json = (await res.json()) as CreatePreferenceResult;
-    return json;
-    */
 
-    // fallback (não deve chegar aqui)
-    return {
-      id: `MOCK-${data.pedido_id}`,
-      init_point: `${publicUrl}/checkout/sucesso?pedido=${data.pedido_id}&mock=1`,
-      sandbox_init_point: `${publicUrl}/checkout/sucesso?pedido=${data.pedido_id}&mock=1`,
-    };
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      console.error("[MP] erro criar preferência", res.status, text);
+      throw new Error(`Mercado Pago retornou ${res.status}`);
+    }
+
+    const json = (await res.json()) as CreatePreferenceResult;
+
+    // Persiste o preference_id no pedido (bypassa RLS via service role).
+    try {
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      await supabaseAdmin
+        .from("pedidos")
+        .update({ mercadopago_preference_id: json.id })
+        .eq("id", data.pedido_id);
+    } catch (e) {
+      console.error("[MP] falha ao salvar preference_id", e);
+    }
+
+    return json;
   });

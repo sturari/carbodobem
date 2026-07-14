@@ -142,10 +142,9 @@ function CheckoutPage() {
       });
 
       limpar();
-      // Em produção real: window.location.href = pref.init_point;
-      // Mock: navegar para tela de sucesso interna.
-      navigate({ to: "/checkout/sucesso", search: { pedido: pedido.pedido_id } });
-      void pref;
+      // Redireciona ao Checkout Pro do Mercado Pago
+      window.location.href = pref.init_point;
+
     } catch (e: unknown) {
       setErro(e instanceof Error ? e.message : "Erro ao processar pedido.");
     } finally {
