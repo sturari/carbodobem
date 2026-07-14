@@ -11,15 +11,14 @@ export function Header() {
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
         <Link to="/" className="flex items-center gap-2 group">
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground">
-            <Snowflake className="h-5 w-5" />
-          </span>
+          <img
+            src={logo.url}
+            alt="Carbo do Bem"
+            className="h-10 w-10 rounded-full object-cover"
+          />
           <div className="leading-tight">
             <div className="font-display text-lg font-bold tracking-tight text-primary">
               Carbo do Bem
-            </div>
-            <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
-              comida congelada de verdade
             </div>
           </div>
         </Link>
