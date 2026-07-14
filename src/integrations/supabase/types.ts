@@ -164,6 +164,7 @@ export type Database = {
           endereco_id: string
           horario_entrega: string
           id: string
+          mercadopago_payment_id: string | null
           mercadopago_preference_id: string | null
           observacoes: string | null
           status: Database["public"]["Enums"]["status_pedido"]
@@ -176,6 +177,7 @@ export type Database = {
           endereco_id: string
           horario_entrega: string
           id?: string
+          mercadopago_payment_id?: string | null
           mercadopago_preference_id?: string | null
           observacoes?: string | null
           status?: Database["public"]["Enums"]["status_pedido"]
@@ -188,6 +190,7 @@ export type Database = {
           endereco_id?: string
           horario_entrega?: string
           id?: string
+          mercadopago_payment_id?: string | null
           mercadopago_preference_id?: string | null
           observacoes?: string | null
           status?: Database["public"]["Enums"]["status_pedido"]
