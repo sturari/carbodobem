@@ -64,3 +64,70 @@ export const verificarAdmin = createServerFn({ method: "GET" })
     });
     return { isAdmin: !!data, userId: context.userId };
   });
+
+// ============ PRODUTOS ============
+
+const produtoSchema = z.object({
+  nome: z.string().min(1).max(200),
+  categoria: z.string().min(1).max(80),
+  descricao: z.string().max(2000).optional().nullable(),
+  preco: z.number().nonnegative(),
+  estoque: z.number().int().nonnegative(),
+  gramatura_g: z.number().int().nonnegative().optional().nullable(),
+  imagem_url: z.string().url().max(500).optional().nullable().or(z.literal("")),
+  ativo: z.boolean(),
+});
+
+export const listarProdutosAdmin = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await assertAdmin(context);
+    const { data, error } = await context.supabase
+      .from("produtos")
+      .select("*")
+      .order("categoria", { ascending: true })
+      .order("nome", { ascending: true });
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
+
+export const criarProduto = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw) => produtoSchema.parse(raw))
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const payload = {
+      ...data,
+      imagem_url: data.imagem_url || null,
+      descricao: data.descricao || null,
+    };
+    const { data: row, error } = await context.supabase
+      .from("produtos")
+      .insert(payload)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return row;
+  });
+
+export const atualizarProduto = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw) =>
+    z
+      .object({ id: z.string().uuid() })
+      .merge(produtoSchema.partial())
+      .parse(raw),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { id, ...updates } = data;
+    if (updates.imagem_url === "") updates.imagem_url = null;
+    const { data: row, error } = await context.supabase
+      .from("produtos")
+      .update(updates)
+      .eq("id", id)
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return row;
+  });
