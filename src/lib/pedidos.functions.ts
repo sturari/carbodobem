@@ -1,7 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { createClient } from "@supabase/supabase-js";
 import { z } from "zod";
-import type { Database } from "@/integrations/supabase/types";
 
 const criarPedidoSchema = z.object({
   cliente: z.object({
@@ -33,11 +31,13 @@ const criarPedidoSchema = z.object({
 export const criarPedido = createServerFn({ method: "POST" })
   .inputValidator((raw) => criarPedidoSchema.parse(raw))
   .handler(async ({ data }) => {
-    const url = process.env.SUPABASE_URL!;
-    const key = process.env.SUPABASE_PUBLISHABLE_KEY!;
-    const supa = createClient<Database>(url, key, {
-      auth: { persistSession: false, autoRefreshToken: false, storage: undefined },
-    });
+    // Checkout anônimo confiável: validamos CEP e preços pelo banco.
+    // Usa supabaseAdmin (service role) para escrever sem depender de
+    // políticas SELECT (o retorno .select() após insert exigiria SELECT
+    // ao anon, o que expõe dados de outros clientes).
+    const { supabaseAdmin: supa } = await import(
+      "@/integrations/supabase/client.server"
+    );
 
     // 1) valida cobertura
     const { data: areas, error: areasErr } = await supa
