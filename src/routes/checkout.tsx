@@ -137,7 +137,7 @@ function CheckoutPage() {
             quantity: i.quantidade,
             unit_price: i.preco,
           })),
-          payer: cliente,
+          payer: { name: cliente.nome, email: cliente.email, phone: cliente.telefone },
         },
       });
 
