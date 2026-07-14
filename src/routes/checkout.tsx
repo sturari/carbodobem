@@ -54,8 +54,8 @@ function CheckoutPage() {
     );
   }
 
-  const proximo = () => setEtapa((e) => Math.min(5, (e + 1) as Etapa));
-  const voltar = () => setEtapa((e) => Math.max(1, (e - 1) as Etapa));
+  const proximo = () => setEtapa((e) => Math.min(5, e + 1) as Etapa);
+  const voltar = () => setEtapa((e) => Math.max(1, e - 1) as Etapa);
 
   async function acaoEtapa1() {
     setErro(null);
