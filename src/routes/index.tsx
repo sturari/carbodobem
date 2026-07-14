@@ -50,7 +50,7 @@ function Home() {
             </p>
             <div className="mt-6 flex flex-wrap gap-4 text-sm text-muted-foreground">
               <div className="flex items-center gap-1.5">
-                <MapPin className="h-4 w-4 text-primary" /> Entrega na Zona Sul
+                <MapPin className="h-4 w-4 text-primary" /> Entregas em Brasília
               </div>
               <div className="flex items-center gap-1.5">
                 <Clock className="h-4 w-4 text-primary" /> Agendamento por horário
