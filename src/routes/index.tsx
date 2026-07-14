@@ -45,8 +45,8 @@ function Home() {
               <span className="text-primary">no horário que você escolher.</span>
             </h1>
             <p className="mt-4 text-lg text-muted-foreground">
-              Refeições prontas ultracongeladas, feitas por chef, entregues em São Paulo.
-              Sem cadastro, sem enrolação — pique, aqueça e pronto.
+              Refeições prontas ultracongeladas, feitas por chef, entregues em Brasília.
+              Sem cadastro, sem enrolação — escolha, aqueça e pronto.
             </p>
             <div className="mt-6 flex flex-wrap gap-4 text-sm text-muted-foreground">
               <div className="flex items-center gap-1.5">
