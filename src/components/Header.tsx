@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
-import { ShoppingBag, Snowflake } from "lucide-react";
+import { ShoppingBag } from "lucide-react";
 import { useCart } from "@/lib/cart-store";
+import logo from "@/assets/principal-verde.jpg.asset.json";
 
 export function Header() {
   const total = useCart((s) => s.totalItens());
