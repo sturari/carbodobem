@@ -1,11 +1,11 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import React, { useState } from "react";
-import { ArrowLeft, Check, ExternalLink, Loader2 } from "lucide-react";
+import { ArrowLeft, Check, Loader2 } from "lucide-react";
 import { type ItemCarrinho, useCart } from "@/lib/cart-store";
 import { formatBRL, formatCEP, formatCPF, formatTelefone, isCPFValido, onlyDigits } from "@/lib/format";
 import { validarCEP } from "@/lib/cep.functions";
-import { iniciarCheckoutMercadoPago } from "@/lib/mercadopago.functions";
+import { PagamentoMP } from "@/components/PagamentoMP";
 import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/checkout")({
@@ -35,7 +35,6 @@ function CheckoutPage() {
   const [etapa, setEtapa] = useState<Etapa>(1);
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
-  const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
 
   const [cliente, setCliente] = useState({ nome: "", telefone: "", email: "", cpf: "" });
   const [cpfInput, setCpfInput] = useState("");
@@ -55,8 +54,6 @@ function CheckoutPage() {
   const [obs, setObs] = useState("");
 
   const fnValidarCEP = useServerFn(validarCEP);
-  const fnIniciarCheckout = useServerFn(iniciarCheckoutMercadoPago);
-  const submissaoRef = React.useRef(false);
 
   const itensCheckout = isDev && itens.length === 0 ? [SALMAO_DEV] : itens;
   const total = itensCheckout.reduce((acc, item) => acc + item.preco * item.quantidade, 0);
@@ -210,71 +207,10 @@ function CheckoutPage() {
     proximo();
   }
 
-  async function finalizarPagamento() {
-    // Guarda síncrona contra cliques duplicados (mais rápida que o setState).
-    if (submissaoRef.current || carregando || checkoutUrl) return;
-    submissaoRef.current = true;
+  // O antigo finalizarPagamento (redirect direto para o Checkout Pro) foi
+  // substituído pelo componente <PagamentoMP>, que expõe Pix nativo, cartão
+  // e o fluxo redirect como opções para o cliente.
 
-    setErro(null);
-    setCarregando(true);
-    setCheckoutUrl(null);
-
-    try {
-      if (itensCheckout.length === 0) {
-        setErro("Seu carrinho está vazio. Adicione um produto antes de pagar.");
-        return;
-      }
-
-      const checkout = await fnIniciarCheckout({
-        data: {
-          cliente,
-          endereco: {
-            ...endereco,
-            complemento: endereco.complemento || null,
-          },
-          horario_entrega: new Date(horario).toISOString(),
-          itens: itensCheckout.map((i) => ({ produto_id: i.id, quantidade: i.quantidade })),
-          observacoes: obs || null,
-          origin: window.location.origin,
-        },
-      });
-
-      limpar();
-      setCheckoutUrl(checkout.checkout_url);
-
-      // Redireciona automaticamente para o Mercado Pago. Se estiver dentro de
-      // um iframe (preview do Lovable), tenta navegar a janela do topo; se o
-      // navegador bloquear, cai para uma nova aba. Em produção (mesma origem),
-      // usa window.location.assign direto.
-      try {
-        const url = checkout.checkout_url;
-        if (window.top && window.top !== window.self) {
-          try {
-            window.top.location.href = url;
-          } catch {
-            const aba = window.open(url, "_blank", "noopener,noreferrer");
-            if (!aba) {
-              setErro(
-                "Não conseguimos abrir o Mercado Pago automaticamente. Use o botão abaixo.",
-              );
-            }
-          }
-        } else {
-          window.location.assign(url);
-        }
-      } catch {
-        setErro(
-          "Não conseguimos abrir o Mercado Pago automaticamente. Use o botão abaixo.",
-        );
-      }
-    } catch (e: unknown) {
-      setErro(e instanceof Error ? e.message : "Erro ao processar pedido.");
-      // Libera nova tentativa em caso de falha real.
-      submissaoRef.current = false;
-    } finally {
-      setCarregando(false);
-    }
-  }
 
   const totalComFrete = total + (taxaEntrega ?? 0);
 
@@ -419,32 +355,23 @@ function CheckoutPage() {
 
 
             {etapa === 5 && (
-              <div className="space-y-4">
-                <h2 className="font-display text-lg font-bold">Pagamento</h2>
-                <p className="text-sm text-muted-foreground">
-                  Escolha como pagar na próxima tela. Aceitamos:
-                </p>
-                <div className="grid grid-cols-3 gap-2">
-                  <div className="rounded-lg border border-border bg-background p-3 text-center">
-                    <div className="text-lg">⚡</div>
-                    <div className="text-xs font-semibold">PIX</div>
-                    <div className="text-[10px] text-muted-foreground">Aprovação na hora</div>
-                  </div>
-                  <div className="rounded-lg border border-border bg-background p-3 text-center">
-                    <div className="text-lg">💳</div>
-                    <div className="text-xs font-semibold">Cartão</div>
-                    <div className="text-[10px] text-muted-foreground">Crédito / débito</div>
-                  </div>
-                  <div className="rounded-lg border border-border bg-background p-3 text-center">
-                    <div className="text-lg">🧾</div>
-                    <div className="text-xs font-semibold">Boleto</div>
-                    <div className="text-[10px] text-muted-foreground">1–2 dias úteis</div>
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  Você será redirecionado ao Mercado Pago para concluir o pagamento com segurança.
-                </p>
-              </div>
+              <PagamentoMP
+                dados={{
+                  cliente,
+                  endereco: {
+                    ...endereco,
+                    complemento: endereco.complemento || null,
+                  },
+                  horario_entrega: new Date(horario).toISOString(),
+                  itens: itensCheckout.map((i) => ({
+                    produto_id: i.id,
+                    quantidade: i.quantidade,
+                  })),
+                  observacoes: obs || null,
+                }}
+                valorTotal={totalComFrete}
+                onCriado={() => limpar()}
+              />
             )}
 
             {erro && (
@@ -453,41 +380,15 @@ function CheckoutPage() {
               </div>
             )}
 
-            {checkoutUrl && (
-              <a
-                href={checkoutUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-4 inline-flex items-center gap-2 rounded-full bg-warm px-5 py-2.5 text-sm font-bold text-white shadow-lg"
-              >
-                <ExternalLink className="h-4 w-4" />
-                Abrir Mercado Pago
-              </a>
-            )}
-
-            <div className="mt-6 flex items-center justify-between gap-2">
-              <button
-                onClick={voltar}
-                disabled={etapa === 1 || carregando}
-                className="rounded-full border border-border px-4 py-2 text-sm font-medium disabled:opacity-40"
-              >
-                Voltar
-              </button>
-              {etapa === 5 ? (
+            {etapa < 5 && (
+              <div className="mt-6 flex items-center justify-between gap-2">
                 <button
-                  onClick={finalizarPagamento}
-                  disabled={carregando || !!checkoutUrl}
-                  aria-busy={carregando}
-                  className="inline-flex items-center gap-2 rounded-full bg-warm px-6 py-2.5 font-bold text-white shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
+                  onClick={voltar}
+                  disabled={etapa === 1 || carregando}
+                  className="rounded-full border border-border px-4 py-2 text-sm font-medium disabled:opacity-40"
                 >
-                  {carregando && <Loader2 className="h-4 w-4 animate-spin" />}
-                  {checkoutUrl
-                    ? "Pagamento gerado"
-                    : carregando
-                      ? "Processando..."
-                      : `Pagar ${formatBRL(totalComFrete)}`}
+                  Voltar
                 </button>
-              ) : (
                 <button
                   onClick={
                     etapa === 1 ? acaoEtapa1
@@ -501,9 +402,21 @@ function CheckoutPage() {
                   {carregando && <Loader2 className="h-4 w-4 animate-spin" />}
                   Continuar
                 </button>
-              )}
-            </div>
+              </div>
+            )}
+
+            {etapa === 5 && (
+              <div className="mt-6">
+                <button
+                  onClick={voltar}
+                  className="rounded-full border border-border px-4 py-2 text-sm font-medium"
+                >
+                  ← Voltar ao horário
+                </button>
+              </div>
+            )}
           </div>
+
 
           <aside className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm h-fit">
             <h3 className="font-display font-bold">Resumo</h3>
