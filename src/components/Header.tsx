@@ -19,6 +19,10 @@ export function Header() {
   }, []);
 
   async function sair() {
+    if (typeof window !== "undefined") {
+      const ok = window.confirm("Tem certeza de que deseja sair?");
+      if (!ok) return;
+    }
     await supabase.auth.signOut();
   }
 
