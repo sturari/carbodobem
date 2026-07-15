@@ -129,7 +129,7 @@ async function buscarProdutos(supa: SupabaseAdmin, itens: CheckoutItem[]) {
 
   const { data: produtos, error } = await supa
     .from("produtos")
-    .select("id, nome, preco, ativo")
+    .select("id, nome, preco, ativo, estoque")
     .in("id", idsUnicos);
   if (error) throw new Error(error.message);
   if (!produtos || produtos.length !== idsUnicos.length) {
@@ -138,6 +138,7 @@ async function buscarProdutos(supa: SupabaseAdmin, itens: CheckoutItem[]) {
 
   return produtos as ProdutoRow[];
 }
+
 
 export async function criarCheckoutMercadoPago(data: CriarCheckoutInput) {
   const { supabaseAdmin: supa } = await import("@/integrations/supabase/client.server");
