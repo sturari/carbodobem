@@ -37,7 +37,8 @@ function CheckoutPage() {
   const [carregando, setCarregando] = useState(false);
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
 
-  const [cliente, setCliente] = useState({ nome: "", telefone: "", email: "" });
+  const [cliente, setCliente] = useState({ nome: "", telefone: "", email: "", cpf: "" });
+  const [cpfInput, setCpfInput] = useState("");
   const [emailConfirm, setEmailConfirm] = useState("");
   const [cepInput, setCepInput] = useState("");
   const [taxaEntrega, setTaxaEntrega] = useState<number | null>(null);
