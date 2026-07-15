@@ -25,12 +25,23 @@ export const Route = createFileRoute("/admin")({
 
 const STATUS_OPTIONS = [
   "pendente",
+  "pagamento_confirmado",
   "em_preparo",
   "saiu_para_entrega",
   "entregue",
   "cancelado",
 ] as const;
 type StatusPedido = (typeof STATUS_OPTIONS)[number];
+
+const STATUS_LABEL: Record<StatusPedido, string> = {
+  pendente: "Aguardando pagamento",
+  pagamento_confirmado: "Pagamento confirmado",
+  em_preparo: "Em preparo",
+  saiu_para_entrega: "Saiu para entrega",
+  entregue: "Entregue",
+  cancelado: "Cancelado",
+};
+
 
 type Tab = "pedidos" | "produtos";
 
