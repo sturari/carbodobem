@@ -214,16 +214,30 @@ function CheckoutPage() {
       limpar();
       setCheckoutUrl(checkout.checkout_url);
 
-      // No preview do Lovable, o app roda dentro de um iframe. Evitamos popups
-      // vazios e mostramos um link real quando não for possível navegar o topo.
+      // Redireciona automaticamente para o Mercado Pago. Se estiver dentro de
+      // um iframe (preview do Lovable), tenta navegar a janela do topo; se o
+      // navegador bloquear, cai para uma nova aba. Em produção (mesma origem),
+      // usa window.location.assign direto.
       try {
+        const url = checkout.checkout_url;
         if (window.top && window.top !== window.self) {
-          setErro("Pagamento pronto. Use o botão abaixo para abrir o Mercado Pago.");
+          try {
+            window.top.location.href = url;
+          } catch {
+            const aba = window.open(url, "_blank", "noopener,noreferrer");
+            if (!aba) {
+              setErro(
+                "Não conseguimos abrir o Mercado Pago automaticamente. Use o botão abaixo.",
+              );
+            }
+          }
         } else {
-          window.location.assign(checkout.checkout_url);
+          window.location.assign(url);
         }
       } catch {
-        setErro("Pagamento pronto. Use o botão abaixo para abrir o Mercado Pago.");
+        setErro(
+          "Não conseguimos abrir o Mercado Pago automaticamente. Use o botão abaixo.",
+        );
       }
     } catch (e: unknown) {
       setErro(e instanceof Error ? e.message : "Erro ao processar pedido.");
