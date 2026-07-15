@@ -16,7 +16,7 @@ type Etapa = 1 | 2 | 3 | 4 | 5;
 
 function CheckoutPage() {
   const navigate = useNavigate();
-  const { itens, subtotal, limpar } = useCart();
+  const { itens, subtotal, limpar, adicionar } = useCart();
   const total = subtotal();
 
   const [etapa, setEtapa] = useState<Etapa>(1);
@@ -43,14 +43,29 @@ function CheckoutPage() {
   const fnCriarPedido = useServerFn(criarPedido);
   const fnCriarMP = useServerFn(criarPreferenciaMP);
 
-  // Atalho de desenvolvimento (apenas via URL): /checkout?dev=1
-  // Pré-preenche os dados e pula direto para a etapa de horário.
-  // Requer ao menos 1 item no carrinho.
+  const isDev =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("dev") === "1";
+
+  // Atalho de dev (/checkout?dev=1): adiciona o Salmão ao carrinho,
+  // pré-preenche os dados e pula direto para a etapa de horário.
   React.useEffect(() => {
-    if (typeof window === "undefined") return;
-    const params = new URLSearchParams(window.location.search);
-    if (params.get("dev") !== "1") return;
-    if (itens.length === 0) return;
+    if (!isDev) return;
+    const SALMAO_ID = "496ca897-c59a-4f2e-898f-a8c1779bf1da";
+    if (!useCart.getState().itens.find((i) => i.id === SALMAO_ID)) {
+      adicionar(
+        {
+          id: SALMAO_ID,
+          nome: "Salmão ao Molho de Maracujá",
+          preco: 49.9,
+          imagem_url:
+            "https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=800&auto=format&fit=crop",
+          gramatura_g: 350,
+        },
+        1,
+      );
+    }
+    useCart.setState({ aberto: false });
     setCliente({
       nome: "Teste Lovable",
       telefone: "(61) 99999-9999",
@@ -73,7 +88,7 @@ function CheckoutPage() {
   }, []);
 
 
-  if (itens.length === 0 && etapa < 5) {
+  if (itens.length === 0 && etapa < 5 && !isDev) {
     return (
       <div className="mx-auto max-w-md p-8 text-center">
         <h1 className="font-display text-2xl font-bold">Carrinho vazio</h1>
@@ -84,6 +99,7 @@ function CheckoutPage() {
       </div>
     );
   }
+
 
   const proximo = () => setEtapa((e) => Math.min(5, e + 1) as Etapa);
   const voltar = () => setEtapa((e) => Math.max(1, e - 1) as Etapa);
