@@ -402,12 +402,28 @@ function CheckoutPage() {
               <div className="space-y-4">
                 <h2 className="font-display text-lg font-bold">Pagamento</h2>
                 <p className="text-sm text-muted-foreground">
-                  Você será redirecionado ao Mercado Pago para pagar com PIX, cartão ou boleto.
+                  Escolha como pagar na próxima tela. Aceitamos:
                 </p>
-                <div className="rounded-lg bg-cold/10 p-3 text-xs text-muted-foreground">
-                  <strong>Modo desenvolvimento:</strong> Mercado Pago está mockado. Ao confirmar,
-                  simulamos aprovação e mostramos a tela de sucesso.
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="rounded-lg border border-border bg-background p-3 text-center">
+                    <div className="text-lg">⚡</div>
+                    <div className="text-xs font-semibold">PIX</div>
+                    <div className="text-[10px] text-muted-foreground">Aprovação na hora</div>
+                  </div>
+                  <div className="rounded-lg border border-border bg-background p-3 text-center">
+                    <div className="text-lg">💳</div>
+                    <div className="text-xs font-semibold">Cartão</div>
+                    <div className="text-[10px] text-muted-foreground">Crédito / débito</div>
+                  </div>
+                  <div className="rounded-lg border border-border bg-background p-3 text-center">
+                    <div className="text-lg">🧾</div>
+                    <div className="text-xs font-semibold">Boleto</div>
+                    <div className="text-[10px] text-muted-foreground">1–2 dias úteis</div>
+                  </div>
                 </div>
+                <p className="text-xs text-muted-foreground">
+                  Você será redirecionado ao Mercado Pago para concluir o pagamento com segurança.
+                </p>
               </div>
             )}
 
