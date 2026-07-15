@@ -6,7 +6,7 @@ type SupabaseAdmin = Awaited<
 
 type ProdutoRow = Pick<
   Database["public"]["Tables"]["produtos"]["Row"],
-  "id" | "nome" | "preco" | "ativo"
+  "id" | "nome" | "preco" | "ativo" | "estoque"
 >;
 
 type CheckoutItem = {
@@ -37,7 +37,9 @@ type CriarCheckoutInput = {
   itens: CheckoutItem[];
   observacoes?: string | null;
   origin?: string;
+  user_id?: string;
 };
+
 
 type MercadoPagoPreference = {
   id: string;
