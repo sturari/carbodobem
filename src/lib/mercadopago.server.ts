@@ -140,11 +140,6 @@ export async function criarCheckoutMercadoPago(data: CriarCheckoutInput) {
   const { supabaseAdmin: supa } = await import("@/integrations/supabase/client.server");
   const { accessToken, isSandbox } = getMercadoPagoConfig();
   const publicUrl = getPublicAppUrl(data.origin);
-  console.info("[MP] criando preferência", {
-    publicUrl,
-    isSandbox,
-    pedidoOrigin: data.origin,
-  });
 
   const area = await buscarAreaEntrega(supa, data.endereco.cep);
   const taxaEntrega = Number(area.taxa_entrega);
