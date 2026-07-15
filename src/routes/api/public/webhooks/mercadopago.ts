@@ -50,20 +50,6 @@ function verifySignature(params: {
   }
 }
 
-function mapStatus(mpStatus: string): "pendente" | "em_preparo" | "cancelado" {
-  switch (mpStatus) {
-    case "approved":
-      return "em_preparo";
-    case "rejected":
-    case "cancelled":
-    case "refunded":
-    case "charged_back":
-      return "cancelado";
-    default:
-      return "pendente"; // in_process, pending, authorized
-  }
-}
-
 export const Route = createFileRoute("/api/public/webhooks/mercadopago")({
   // @ts-expect-error - `server` handled by TanStack Start plugin at build time
   server: {
@@ -73,9 +59,13 @@ export const Route = createFileRoute("/api/public/webhooks/mercadopago")({
 
       POST: async ({ request }: { request: Request }) => {
         const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
-        const accessToken =
-          process.env.MERCADOPAGO_ACCESS_TOKEN_PROD ||
-          process.env.MERCADOPAGO_ACCESS_TOKEN_TEST;
+        const { getMercadoPagoConfig, mapMercadoPagoStatus } = await import("@/lib/mercadopago.server");
+        let accessToken: string;
+        try {
+          accessToken = getMercadoPagoConfig().accessToken;
+        } catch {
+          accessToken = "";
+        }
 
         if (!secret || !accessToken) {
           console.error("[MP webhook] segredos ausentes");
@@ -130,7 +120,7 @@ export const Route = createFileRoute("/api/public/webhooks/mercadopago")({
           return new Response("No external_reference", { status: 200, headers: corsHeaders });
         }
 
-        const novoStatus = mapStatus(payment.status);
+        const novoStatus = mapMercadoPagoStatus(payment.status).pedidoStatus;
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const { error } = await supabaseAdmin
           .from("pedidos")

@@ -40,6 +40,7 @@ export const listarPedidosAdmin = createServerFn({ method: "GET" })
       // Só exibe pedidos com pagamento processado pelo webhook do MP.
       // 'pendente' = aguardando pagamento; fica oculto do painel.
       .in("status", ["em_preparo", "saiu_para_entrega", "entregue", "cancelado"])
+      .not("mercadopago_payment_id", "is", null)
       .order("created_at", { ascending: false })
       .limit(200);
     if (error) throw new Error(error.message);

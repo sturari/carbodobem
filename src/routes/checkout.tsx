@@ -1,12 +1,11 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import React, { useState } from "react";
-import { ArrowLeft, Check, Loader2 } from "lucide-react";
-import { useCart } from "@/lib/cart-store";
+import { ArrowLeft, Check, ExternalLink, Loader2 } from "lucide-react";
+import { type ItemCarrinho, useCart } from "@/lib/cart-store";
 import { formatBRL, formatCEP, formatTelefone, onlyDigits } from "@/lib/format";
 import { validarCEP } from "@/lib/cep.functions";
-import { criarPedido } from "@/lib/pedidos.functions";
-import { criarPreferenciaMP } from "@/lib/mercadopago.functions";
+import { iniciarCheckoutMercadoPago } from "@/lib/mercadopago.functions";
 
 export const Route = createFileRoute("/checkout")({
   component: CheckoutPage,
@@ -14,14 +13,24 @@ export const Route = createFileRoute("/checkout")({
 
 type Etapa = 1 | 2 | 3 | 4 | 5;
 
-function CheckoutPage() {
-  const navigate = useNavigate();
-  const { itens, subtotal, limpar, adicionar } = useCart();
-  const total = subtotal();
+const SALMAO_DEV: ItemCarrinho = {
+  id: "496ca897-c59a-4f2e-898f-a8c1779bf1da",
+  nome: "Salmão ao Molho de Maracujá",
+  preco: 49.9,
+  imagem_url: "https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=800&auto=format&fit=crop",
+  gramatura_g: 350,
+  quantidade: 1,
+};
 
+function CheckoutPage() {
+  const { itens, limpar, adicionar } = useCart();
+
+  const [hydrated, setHydrated] = useState(false);
+  const [isDev, setIsDev] = useState(false);
   const [etapa, setEtapa] = useState<Etapa>(1);
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
+  const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
 
   const [cliente, setCliente] = useState({ nome: "", telefone: "", email: "" });
   const [emailConfirm, setEmailConfirm] = useState("");
@@ -40,29 +49,31 @@ function CheckoutPage() {
   const [obs, setObs] = useState("");
 
   const fnValidarCEP = useServerFn(validarCEP);
-  const fnCriarPedido = useServerFn(criarPedido);
-  const fnCriarMP = useServerFn(criarPreferenciaMP);
+  const fnIniciarCheckout = useServerFn(iniciarCheckoutMercadoPago);
 
-  const isDev =
-    typeof window !== "undefined" &&
-    new URLSearchParams(window.location.search).get("dev") === "1";
+  const itensCheckout = isDev && itens.length === 0 ? [SALMAO_DEV] : itens;
+  const total = itensCheckout.reduce((acc, item) => acc + item.preco * item.quantidade, 0);
 
   // Atalho de dev (/checkout?dev=1): adiciona o Salmão ao carrinho,
   // pré-preenche os dados e pula direto para a etapa de horário.
   React.useEffect(() => {
+    const dev = new URLSearchParams(window.location.search).get("dev") === "1";
+    setIsDev(dev);
+    setHydrated(true);
+  }, []);
+
+  React.useEffect(() => {
     if (!isDev) return;
-    const SALMAO_ID = "496ca897-c59a-4f2e-898f-a8c1779bf1da";
-    if (!useCart.getState().itens.find((i) => i.id === SALMAO_ID)) {
+    if (!useCart.getState().itens.find((i) => i.id === SALMAO_DEV.id)) {
       adicionar(
         {
-          id: SALMAO_ID,
-          nome: "Salmão ao Molho de Maracujá",
-          preco: 49.9,
-          imagem_url:
-            "https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=800&auto=format&fit=crop",
-          gramatura_g: 350,
+          id: SALMAO_DEV.id,
+          nome: SALMAO_DEV.nome,
+          preco: SALMAO_DEV.preco,
+          imagem_url: SALMAO_DEV.imagem_url,
+          gramatura_g: SALMAO_DEV.gramatura_g,
         },
-        1,
+        SALMAO_DEV.quantidade,
       );
     }
     useCart.setState({ aberto: false });
@@ -85,10 +96,18 @@ function CheckoutPage() {
     });
     setEtapa(4);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isDev]);
 
 
-  if (itens.length === 0 && etapa < 5 && !isDev) {
+  if (!hydrated) {
+    return (
+      <div className="mx-auto max-w-md p-8 text-center">
+        <Loader2 className="mx-auto h-5 w-5 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (itensCheckout.length === 0 && etapa < 5 && !isDev) {
     return (
       <div className="mx-auto max-w-md p-8 text-center">
         <h1 className="font-display text-2xl font-bold">Carrinho vazio</h1>
@@ -165,24 +184,15 @@ function CheckoutPage() {
   async function finalizarPagamento() {
     setErro(null);
     setCarregando(true);
-    // Abre a aba imediatamente (com user-activation) e mantém o handle para
-    // direcioná-la ao Mercado Pago depois que o pedido/preferência forem criados.
-    // Não usamos `noopener` aqui porque alguns navegadores retornam `null`,
-    // deixando uma aba about:blank aberta e acionando também o fallback no preview.
-    const janelaPagamento = window.open("about:blank", "_blank");
-    if (janelaPagamento) {
-      try {
-        janelaPagamento.document.title = "Redirecionando...";
-        janelaPagamento.document.body.innerHTML =
-          '<p style="font-family: system-ui, sans-serif; padding: 24px; color: #111827;">Redirecionando para o Mercado Pago...</p>';
-        janelaPagamento.opener = null;
-      } catch {
-        /* ignora limitações do navegador */
-      }
-    }
+    setCheckoutUrl(null);
 
     try {
-      const pedido = await fnCriarPedido({
+      if (itensCheckout.length === 0) {
+        setErro("Seu carrinho está vazio. Adicione um produto antes de pagar.");
+        return;
+      }
+
+      const checkout = await fnIniciarCheckout({
         data: {
           cliente,
           endereco: {
@@ -190,47 +200,27 @@ function CheckoutPage() {
             complemento: endereco.complemento || null,
           },
           horario_entrega: new Date(horario).toISOString(),
-          itens: itens.map((i) => ({ produto_id: i.id, quantidade: i.quantidade })),
+          itens: itensCheckout.map((i) => ({ produto_id: i.id, quantidade: i.quantidade })),
           observacoes: obs || null,
-        },
-      });
-
-      const pref = await fnCriarMP({
-        data: {
-          pedido_id: pedido.pedido_id,
-          items: itens.map((i) => ({
-            id: i.id,
-            title: i.nome,
-            quantity: i.quantidade,
-            unit_price: i.preco,
-          })),
-          payer: { name: cliente.nome, email: cliente.email, phone: cliente.telefone },
+          origin: window.location.origin,
         },
       });
 
       limpar();
-      const url = pref.checkout_url;
+      setCheckoutUrl(checkout.checkout_url);
 
-      // 1) Se conseguimos abrir a aba no clique, apenas navegamos ela.
-      if (janelaPagamento && !janelaPagamento.closed) {
-        janelaPagamento.location.assign(url);
-        return;
-      }
-
-      // 2) Se o popup foi bloqueado, tenta escapar do iframe do preview via top-level.
+      // No preview do Lovable, o app roda dentro de um iframe. Evitamos popups
+      // vazios e mostramos um link real quando não for possível navegar o topo.
       try {
         if (window.top && window.top !== window.self) {
-          window.top.location.href = url;
-          return;
+          setErro("Pagamento pronto. Use o botão abaixo para abrir o Mercado Pago.");
+        } else {
+          window.location.assign(checkout.checkout_url);
         }
       } catch {
-        /* cross-origin: cai no fallback */
+        setErro("Pagamento pronto. Use o botão abaixo para abrir o Mercado Pago.");
       }
-
-      // 3) Fallback: navega a própria janela.
-      window.location.href = url;
     } catch (e: unknown) {
-      if (janelaPagamento && !janelaPagamento.closed) janelaPagamento.close();
       setErro(e instanceof Error ? e.message : "Erro ao processar pedido.");
     } finally {
       setCarregando(false);
@@ -398,6 +388,18 @@ function CheckoutPage() {
               </div>
             )}
 
+            {checkoutUrl && (
+              <a
+                href={checkoutUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-4 inline-flex items-center gap-2 rounded-full bg-warm px-5 py-2.5 text-sm font-bold text-white shadow-lg"
+              >
+                <ExternalLink className="h-4 w-4" />
+                Abrir Mercado Pago
+              </a>
+            )}
+
             <div className="mt-6 flex items-center justify-between gap-2">
               <button
                 onClick={voltar}
@@ -436,7 +438,7 @@ function CheckoutPage() {
           <aside className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm h-fit">
             <h3 className="font-display font-bold">Resumo</h3>
             <ul className="mt-3 space-y-2 text-sm">
-              {itens.map((i) => (
+              {itensCheckout.map((i) => (
                 <li key={i.id} className="flex justify-between gap-2">
                   <span className="text-muted-foreground">
                     {i.quantidade}× {i.nome}
