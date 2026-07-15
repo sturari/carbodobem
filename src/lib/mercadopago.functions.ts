@@ -1,5 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+
 import { z } from "zod";
 import type { CreatePreferenceResult } from "./mercadopago";
 
@@ -132,18 +132,36 @@ export const criarPreferenciaMP = createServerFn({ method: "POST" })
   });
 
 export const iniciarCheckoutMercadoPago = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((raw) => checkoutSchema.parse(raw))
-  .handler(async ({ data, context }) => {
+  .handler(async ({ data }) => {
     const { getRequestHeader } = await import("@tanstack/react-start/server");
     const { criarCheckoutMercadoPago } = await import("@/lib/mercadopago.server");
     const forwardedProto = getRequestHeader("x-forwarded-proto") || "https";
     const forwardedHost = getRequestHeader("x-forwarded-host") || getRequestHeader("host");
     const requestOrigin = forwardedHost ? `${forwardedProto}://${forwardedHost}` : undefined;
 
+    // Auth opcional: se o usuário estiver logado, associamos o pedido a ele.
+    let userId: string | undefined;
+    try {
+      const authHeader = getRequestHeader("authorization");
+      const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : undefined;
+      if (token) {
+        const { createClient } = await import("@supabase/supabase-js");
+        const supa = createClient(
+          process.env.SUPABASE_URL!,
+          process.env.SUPABASE_PUBLISHABLE_KEY!,
+          { auth: { persistSession: false, autoRefreshToken: false } },
+        );
+        const { data: userData } = await supa.auth.getUser(token);
+        userId = userData.user?.id;
+      }
+    } catch {
+      // token inválido/expirado — segue como convidado
+    }
+
     return criarCheckoutMercadoPago({
       ...data,
-      user_id: context.userId,
+      user_id: userId,
       origin: data.origin ?? requestOrigin,
     });
   });
