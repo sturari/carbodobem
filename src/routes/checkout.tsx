@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import React, { useState } from "react";
 import { ArrowLeft, Check, ExternalLink, Loader2 } from "lucide-react";
 import { type ItemCarrinho, useCart } from "@/lib/cart-store";
-import { formatBRL, formatCEP, formatTelefone, onlyDigits } from "@/lib/format";
+import { formatBRL, formatCEP, formatCPF, formatTelefone, isCPFValido, onlyDigits } from "@/lib/format";
 import { validarCEP } from "@/lib/cep.functions";
 import { iniciarCheckoutMercadoPago } from "@/lib/mercadopago.functions";
 import { supabase } from "@/integrations/supabase/client";
@@ -37,7 +37,8 @@ function CheckoutPage() {
   const [carregando, setCarregando] = useState(false);
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
 
-  const [cliente, setCliente] = useState({ nome: "", telefone: "", email: "" });
+  const [cliente, setCliente] = useState({ nome: "", telefone: "", email: "", cpf: "" });
+  const [cpfInput, setCpfInput] = useState("");
   const [emailConfirm, setEmailConfirm] = useState("");
   const [cepInput, setCepInput] = useState("");
   const [taxaEntrega, setTaxaEntrega] = useState<number | null>(null);
@@ -105,7 +106,9 @@ function CheckoutPage() {
       nome: "Teste Lovable",
       telefone: "(61) 99999-9999",
       email: "felipe.sturari@gmail.com",
+      cpf: "39053344705",
     });
+    setCpfInput("390.533.447-05");
     setEmailConfirm("felipe.sturari@gmail.com");
     setCepInput("71503-505");
     setTaxaEntrega(15);
@@ -153,6 +156,11 @@ function CheckoutPage() {
       setErro("Preencha nome, telefone válido e confirme seu e-mail.");
       return;
     }
+    if (!isCPFValido(cpfInput)) {
+      setErro("Informe um CPF válido — é exigido pelo Mercado Pago para gerar o Pix.");
+      return;
+    }
+    setCliente((p) => ({ ...p, cpf: onlyDigits(cpfInput) }));
     proximo();
   }
 
@@ -314,6 +322,18 @@ function CheckoutPage() {
                   />
                   <span className="mt-1 block text-xs text-muted-foreground">
                     Este é o e-mail da sua conta. Ele será usado para o recibo e para acompanhar o pedido.
+                  </span>
+                </Campo>
+                <Campo label="CPF">
+                  <input
+                    className="input"
+                    inputMode="numeric"
+                    placeholder="000.000.000-00"
+                    value={cpfInput}
+                    onChange={(e) => setCpfInput(formatCPF(e.target.value))}
+                  />
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    Necessário para gerar o Pix e emitir o recibo do Mercado Pago.
                   </span>
                 </Campo>
 

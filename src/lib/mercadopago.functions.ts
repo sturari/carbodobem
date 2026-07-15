@@ -9,6 +9,7 @@ const checkoutSchema = z.object({
     nome: z.string().min(2),
     telefone: z.string().min(10),
     email: z.string().email(),
+    cpf: z.string().length(11),
   }),
   endereco: z.object({
     cep: z.string().length(8),

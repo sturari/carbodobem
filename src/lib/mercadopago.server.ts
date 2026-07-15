@@ -18,6 +18,7 @@ type ClienteInput = {
   nome: string;
   telefone: string;
   email: string;
+  cpf: string;
 };
 
 type EnderecoInput = {
@@ -174,9 +175,10 @@ export async function criarCheckoutMercadoPago(data: CriarCheckoutInput) {
 
   const valorTotal = subtotal + taxaEntrega;
 
+  const { cpf: cpfCliente, ...clienteSemCpf } = data.cliente;
   const { data: clienteRow, error: clienteError } = await supa
     .from("clientes")
-    .insert(data.cliente)
+    .insert(clienteSemCpf)
     .select("id")
     .single();
   if (clienteError || !clienteRow) {
@@ -228,11 +230,22 @@ export async function criarCheckoutMercadoPago(data: CriarCheckoutInput) {
       unit_price: item.preco_unitario,
       currency_id: "BRL",
     })),
-    payer: {
-      name: data.cliente.nome,
-      email: data.cliente.email,
-      ...(data.cliente.telefone ? { phone: { number: data.cliente.telefone } } : {}),
-    },
+    payer: (() => {
+      const partes = data.cliente.nome.trim().split(/\s+/);
+      const first_name = partes.shift() ?? data.cliente.nome;
+      const last_name = partes.join(" ") || first_name;
+      const telDigits = data.cliente.telefone.replace(/\D/g, "");
+      const area_code = telDigits.slice(0, 2);
+      const number = telDigits.slice(2);
+      return {
+        name: data.cliente.nome,
+        first_name,
+        last_name,
+        email: data.cliente.email,
+        identification: { type: "CPF", number: cpfCliente },
+        ...(telDigits ? { phone: { area_code, number } } : {}),
+      };
+    })(),
     external_reference: pedidoRow.id,
     back_urls: {
       success: `${publicUrl}/checkout/sucesso?pedido=${pedidoRow.id}`,
