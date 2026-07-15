@@ -64,6 +64,10 @@ function CheckoutPage() {
       setErro("Preencha nome, telefone válido e e-mail.");
       return;
     }
+    if (cliente.email.trim().toLowerCase() !== emailConfirm.trim().toLowerCase()) {
+      setErro("Os e-mails não coincidem. Confira a confirmação.");
+      return;
+    }
     proximo();
   }
 
