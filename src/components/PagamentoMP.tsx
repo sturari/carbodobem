@@ -569,14 +569,24 @@ function FluxoCartao({
         <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Número do cartão
         </span>
-        <input
-          className="input"
-          inputMode="numeric"
-          autoComplete="cc-number"
-          placeholder="0000 0000 0000 0000"
-          value={numero}
-          onChange={(e) => setNumero(formatarNumero(e.target.value))}
-        />
+        <div className="relative">
+          <input
+            className="input pr-14"
+            inputMode="numeric"
+            autoComplete="cc-number"
+            placeholder="0000 0000 0000 0000"
+            value={numero}
+            onChange={(e) => setNumero(formatarNumero(e.target.value))}
+          />
+          {bandeira?.secure_thumbnail || bandeira?.thumbnail ? (
+            <img
+              src={bandeira.secure_thumbnail || bandeira.thumbnail}
+              alt={bandeira.name || bandeira.id}
+              title={bandeira.name || bandeira.id}
+              className="absolute right-3 top-1/2 h-6 w-9 -translate-y-1/2 object-contain"
+            />
+          ) : null}
+        </div>
       </label>
 
       <label className="block">
