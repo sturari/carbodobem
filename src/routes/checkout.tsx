@@ -3,7 +3,7 @@ import { useServerFn } from "@tanstack/react-start";
 import React, { useState } from "react";
 import { ArrowLeft, Check, ExternalLink, Loader2 } from "lucide-react";
 import { type ItemCarrinho, useCart } from "@/lib/cart-store";
-import { formatBRL, formatCEP, formatTelefone, onlyDigits } from "@/lib/format";
+import { formatBRL, formatCEP, formatCPF, formatTelefone, isCPFValido, onlyDigits } from "@/lib/format";
 import { validarCEP } from "@/lib/cep.functions";
 import { iniciarCheckoutMercadoPago } from "@/lib/mercadopago.functions";
 import { supabase } from "@/integrations/supabase/client";
