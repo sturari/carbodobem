@@ -9,6 +9,8 @@ import {
   criarProduto,
   listarPedidosAdmin,
   listarProdutosAdmin,
+  reembolsarPedido,
+  sincronizarPedidoMP,
   verificarAdmin,
 } from "@/lib/admin.functions";
 import { formatBRL } from "@/lib/format";
