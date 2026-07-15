@@ -359,18 +359,35 @@ function FluxoPix({
         className={`rounded-lg px-3 py-2 text-sm ${
           status === "aprovado"
             ? "bg-primary/10 text-primary"
-            : status === "recusado"
+            : status === "recusado" || expirado
               ? "bg-destructive/10 text-destructive"
               : "bg-muted/60 text-muted-foreground"
         }`}
       >
         {status === "aprovado" && "✔ Pagamento confirmado! Redirecionando…"}
         {status === "recusado" && "Pagamento recusado. Escolha outro método."}
-        {status !== "aprovado" && status !== "recusado" && (
-          <span className="inline-flex items-center gap-2">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            Aguardando pagamento…
-          </span>
+        {status !== "aprovado" && status !== "recusado" && expirado && (
+          <span>Este Pix expirou. Volte e escolha outro método.</span>
+        )}
+        {status !== "aprovado" && status !== "recusado" && !expirado && (
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="inline-flex items-center gap-2">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Aguardando pagamento…
+              {restanteLabel && (
+                <span className="text-xs opacity-80">expira em {restanteLabel}</span>
+              )}
+            </span>
+            <button
+              type="button"
+              onClick={verificarAgora}
+              disabled={verificando}
+              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1 text-xs font-semibold text-foreground hover:bg-muted disabled:opacity-60"
+            >
+              {verificando && <Loader2 className="h-3 w-3 animate-spin" />}
+              {verificando ? "Verificando…" : "Já paguei"}
+            </button>
+          </div>
         )}
       </div>
 
