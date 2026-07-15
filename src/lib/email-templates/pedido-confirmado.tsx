@@ -152,11 +152,8 @@ const Email = ({
           </Section>
         )}
 
-        <Section style={footer}>
-          <Text style={footerText}>
-            Qualquer dúvida, é só responder este email. Obrigado por escolher a Carbo do Bem! 💚
-          </Text>
-        </Section>
+        <BrandFooter />
+
       </Container>
     </Body>
   </Html>
