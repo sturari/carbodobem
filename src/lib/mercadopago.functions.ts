@@ -1,9 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
-
 import { z } from "zod";
 
-
-const checkoutSchema = z.object({
+const pedidoBaseSchema = z.object({
   cliente: z.object({
     nome: z.string().min(2),
     telefone: z.string().min(10),
@@ -21,15 +19,22 @@ const checkoutSchema = z.object({
   }),
   horario_entrega: z.string().datetime(),
   itens: z
-    .array(
-      z.object({
-        produto_id: z.string().uuid(),
-        quantidade: z.number().int().positive(),
-      }),
-    )
+    .array(z.object({ produto_id: z.string().uuid(), quantidade: z.number().int().positive() }))
     .min(1),
   observacoes: z.string().optional().nullable(),
+});
+
+const checkoutSchema = pedidoBaseSchema.extend({
   origin: z.string().url().optional(),
+});
+
+const cartaoSchema = pedidoBaseSchema.extend({
+  cartao: z.object({
+    token: z.string().min(1),
+    payment_method_id: z.string().min(1),
+    installments: z.number().int().positive().max(12),
+    issuer_id: z.string().nullable().optional(),
+  }),
 });
 
 const statusSchema = z.object({
@@ -37,15 +42,33 @@ const statusSchema = z.object({
   payment_id: z.string().optional(),
 });
 
-// NOTE: A antiga função `criarPreferenciaMP` foi removida por questão de segurança.
-// Ela aceitava `unit_price` e `pedido_id` vindos do cliente sem autenticação,
-// permitindo que qualquer pessoa criasse um link de pagamento com valor arbitrário
-// para um pedido existente. Todo o fluxo de checkout agora passa exclusivamente
-// por `iniciarCheckoutMercadoPago`, que deriva preços e totais da tabela
-// `produtos` no servidor.
+// Resolve user_id opcional pelo header Authorization. Retorna undefined em erro.
+async function resolveUserId(): Promise<string | undefined> {
+  const { getRequestHeader } = await import("@tanstack/react-start/server");
+  try {
+    const authHeader = getRequestHeader("authorization");
+    const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : undefined;
+    if (!token) return undefined;
+    const { createClient } = await import("@supabase/supabase-js");
+    const supa = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_PUBLISHABLE_KEY!,
+      { auth: { persistSession: false, autoRefreshToken: false } },
+    );
+    const { data } = await supa.auth.getUser(token);
+    return data.user?.id;
+  } catch {
+    return undefined;
+  }
+}
 
+/** Retorna a public key do Mercado Pago para uso no SDK JS do cliente. */
+export const obterMercadoPagoPublicKey = createServerFn({ method: "GET" }).handler(async () => {
+  const { getMercadoPagoPublicKey } = await import("@/lib/mercadopago.server");
+  return getMercadoPagoPublicKey();
+});
 
-
+/** Fluxo redirect: Checkout Pro (mantido). */
 export const iniciarCheckoutMercadoPago = createServerFn({ method: "POST" })
   .inputValidator((raw) => checkoutSchema.parse(raw))
   .handler(async ({ data }) => {
@@ -54,26 +77,7 @@ export const iniciarCheckoutMercadoPago = createServerFn({ method: "POST" })
     const forwardedProto = getRequestHeader("x-forwarded-proto") || "https";
     const forwardedHost = getRequestHeader("x-forwarded-host") || getRequestHeader("host");
     const requestOrigin = forwardedHost ? `${forwardedProto}://${forwardedHost}` : undefined;
-
-    // Auth opcional: se o usuário estiver logado, associamos o pedido a ele.
-    let userId: string | undefined;
-    try {
-      const authHeader = getRequestHeader("authorization");
-      const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : undefined;
-      if (token) {
-        const { createClient } = await import("@supabase/supabase-js");
-        const supa = createClient(
-          process.env.SUPABASE_URL!,
-          process.env.SUPABASE_PUBLISHABLE_KEY!,
-          { auth: { persistSession: false, autoRefreshToken: false } },
-        );
-        const { data: userData } = await supa.auth.getUser(token);
-        userId = userData.user?.id;
-      }
-    } catch {
-      // token inválido/expirado — segue como convidado
-    }
-
+    const userId = await resolveUserId();
     return criarCheckoutMercadoPago({
       ...data,
       user_id: userId,
@@ -81,7 +85,25 @@ export const iniciarCheckoutMercadoPago = createServerFn({ method: "POST" })
     });
   });
 
+/** Fluxo Pix nativo: retorna QR + copia-e-cola. */
+export const criarPagamentoPix = createServerFn({ method: "POST" })
+  .inputValidator((raw) => pedidoBaseSchema.parse(raw))
+  .handler(async ({ data }) => {
+    const { criarPagamentoPixMP } = await import("@/lib/mercadopago.server");
+    const userId = await resolveUserId();
+    return criarPagamentoPixMP({ ...data, user_id: userId });
+  });
 
+/** Fluxo cartão: recebe token gerado no cliente pelo MP.js. */
+export const criarPagamentoCartao = createServerFn({ method: "POST" })
+  .inputValidator((raw) => cartaoSchema.parse(raw))
+  .handler(async ({ data }) => {
+    const { criarPagamentoCartaoMP } = await import("@/lib/mercadopago.server");
+    const userId = await resolveUserId();
+    return criarPagamentoCartaoMP({ ...data, user_id: userId });
+  });
+
+/** Consulta status atual do pagamento (usado no polling do Pix). */
 export const confirmarPagamentoMercadoPago = createServerFn({ method: "POST" })
   .inputValidator((raw) => statusSchema.parse(raw))
   .handler(async ({ data }) => {

@@ -31,16 +31,16 @@ type EnderecoInput = {
   uf: string;
 };
 
-type CriarCheckoutInput = {
+type CriarPedidoInput = {
   cliente: ClienteInput;
   endereco: EnderecoInput;
   horario_entrega: string;
   itens: CheckoutItem[];
   observacoes?: string | null;
-  origin?: string;
   user_id?: string;
 };
 
+type CriarCheckoutInput = CriarPedidoInput & { origin?: string };
 
 type MercadoPagoPreference = {
   id: string;
@@ -51,7 +51,16 @@ type MercadoPagoPreference = {
 type MercadoPagoPayment = {
   id: number | string;
   status?: string;
+  status_detail?: string;
   external_reference?: string;
+  point_of_interaction?: {
+    transaction_data?: {
+      qr_code?: string;
+      qr_code_base64?: string;
+      ticket_url?: string;
+    };
+  };
+  date_of_expiration?: string;
 };
 
 export type StatusPagamento = "aguardando" | "aprovado" | "pendente" | "recusado";
@@ -60,9 +69,6 @@ function normalizarOrigin(origin?: string) {
   if (!origin) return null;
   try {
     const url = new URL(origin);
-    // O Mercado Pago não aceita localhost/http em back_urls quando auto_return
-    // está ativo. Só usamos origens públicas HTTPS; no dev local caímos no
-    // domínio estável do preview.
     if (url.protocol !== "https:") return null;
     return url.origin;
   } catch {
@@ -73,10 +79,8 @@ function normalizarOrigin(origin?: string) {
 export function getPublicAppUrl(origin?: string) {
   const envUrl = process.env.PUBLIC_APP_URL;
   if (envUrl) return envUrl.replace(/\/$/, "");
-
   const safeOrigin = normalizarOrigin(origin);
   if (safeOrigin) return safeOrigin;
-
   return "https://project--58f6f86b-1d2b-449d-b777-7408cba43a69.lovable.app";
 }
 
@@ -85,9 +89,16 @@ export function getMercadoPagoConfig() {
   const testToken = process.env.MERCADOPAGO_ACCESS_TOKEN_TEST;
   const accessToken = prodToken || testToken;
   if (!accessToken) throw new Error("Mercado Pago não configurado.");
-
   const isSandbox = !prodToken;
   return { accessToken, isSandbox };
+}
+
+export function getMercadoPagoPublicKey() {
+  const prod = process.env.MERCADOPAGO_PUBLIC_KEY_PROD;
+  const test = process.env.MERCADOPAGO_PUBLIC_KEY_TEST;
+  const key = prod || test;
+  if (!key) throw new Error("Mercado Pago public key não configurada.");
+  return { publicKey: key, isSandbox: !prod };
 }
 
 export function mapMercadoPagoStatus(mpStatus?: string): {
@@ -111,14 +122,12 @@ export function mapMercadoPagoStatus(mpStatus?: string): {
   }
 }
 
-
 async function buscarAreaEntrega(supa: SupabaseAdmin, cep: string) {
   const { data: areas, error } = await supa
     .from("areas_cobertura")
     .select("cep_inicio, cep_fim, taxa_entrega")
     .eq("ativo", true);
   if (error) throw new Error(error.message);
-
   const area = (areas ?? []).find((a) => cep >= a.cep_inicio && cep <= a.cep_fim);
   if (!area) throw new Error("CEP fora da área de cobertura.");
   return area;
@@ -127,7 +136,6 @@ async function buscarAreaEntrega(supa: SupabaseAdmin, cep: string) {
 async function buscarProdutos(supa: SupabaseAdmin, itens: CheckoutItem[]) {
   const ids = itens.map((i) => i.produto_id);
   const idsUnicos = [...new Set(ids)];
-
   const { data: produtos, error } = await supa
     .from("produtos")
     .select("id, nome, preco, ativo, estoque")
@@ -136,28 +144,26 @@ async function buscarProdutos(supa: SupabaseAdmin, itens: CheckoutItem[]) {
   if (!produtos || produtos.length !== idsUnicos.length) {
     throw new Error("Produto inválido no pedido.");
   }
-
   return produtos as ProdutoRow[];
 }
 
-
-export async function criarCheckoutMercadoPago(data: CriarCheckoutInput) {
+/**
+ * Cria cliente + endereço + pedido + itens no banco.
+ * Retorna dados calculados no servidor a partir da tabela `produtos`.
+ * Usado por todos os fluxos de pagamento (Checkout Pro, Pix nativo e Cartão).
+ */
+async function criarPedidoBase(input: CriarPedidoInput) {
   const { supabaseAdmin: supa } = await import("@/integrations/supabase/client.server");
-  const { accessToken, isSandbox } = getMercadoPagoConfig();
-  const publicUrl = getPublicAppUrl(data.origin);
-
-  const area = await buscarAreaEntrega(supa, data.endereco.cep);
+  const area = await buscarAreaEntrega(supa, input.endereco.cep);
   const taxaEntrega = Number(area.taxa_entrega);
-  const produtos = await buscarProdutos(supa, data.itens);
+  const produtos = await buscarProdutos(supa, input.itens);
 
   let subtotal = 0;
-  const itensCalc = data.itens.map((item) => {
+  const itensCalc = input.itens.map((item) => {
     const produto = produtos.find((p) => p.id === item.produto_id);
     if (!produto) throw new Error("Produto inválido no pedido.");
     if (!produto.ativo) throw new Error(`Produto indisponível: ${produto.nome}`);
-    if (produto.estoque <= 0) {
-      throw new Error(`Produto sem estoque: ${produto.nome}`);
-    }
+    if (produto.estoque <= 0) throw new Error(`Produto sem estoque: ${produto.nome}`);
     if (item.quantidade > produto.estoque) {
       throw new Error(
         `Estoque insuficiente para ${produto.nome} (disponível: ${produto.estoque}).`,
@@ -175,7 +181,7 @@ export async function criarCheckoutMercadoPago(data: CriarCheckoutInput) {
 
   const valorTotal = subtotal + taxaEntrega;
 
-  const { cpf: cpfCliente, ...clienteSemCpf } = data.cliente;
+  const { cpf: cpfCliente, ...clienteSemCpf } = input.cliente;
   const { data: clienteRow, error: clienteError } = await supa
     .from("clientes")
     .insert(clienteSemCpf)
@@ -187,7 +193,7 @@ export async function criarCheckoutMercadoPago(data: CriarCheckoutInput) {
 
   const { data: enderecoRow, error: enderecoError } = await supa
     .from("enderecos")
-    .insert({ ...data.endereco, cliente_id: clienteRow.id })
+    .insert({ ...input.endereco, cliente_id: clienteRow.id })
     .select("id")
     .single();
   if (enderecoError || !enderecoRow) {
@@ -199,18 +205,17 @@ export async function criarCheckoutMercadoPago(data: CriarCheckoutInput) {
     .insert({
       cliente_id: clienteRow.id,
       endereco_id: enderecoRow.id,
-      horario_entrega: data.horario_entrega,
+      horario_entrega: input.horario_entrega,
       valor_total: valorTotal,
-      observacoes: data.observacoes ?? null,
+      observacoes: input.observacoes ?? null,
       status: "pendente",
-      user_id: data.user_id ?? null,
+      user_id: input.user_id ?? null,
     })
     .select("id")
     .single();
   if (pedidoError || !pedidoRow) {
     throw new Error(pedidoError?.message ?? "Falha ao criar pedido.");
   }
-
 
   const { error: itensError } = await supa.from("itens_pedido").insert(
     itensCalc.map((item) => ({
@@ -222,41 +227,63 @@ export async function criarCheckoutMercadoPago(data: CriarCheckoutInput) {
   );
   if (itensError) throw new Error(itensError.message);
 
+  return {
+    pedidoId: pedidoRow.id,
+    cpfCliente,
+    itensCalc,
+    subtotal,
+    taxaEntrega,
+    valorTotal,
+  };
+}
+
+function payerFromCliente(cliente: ClienteInput, cpf: string) {
+  const partes = cliente.nome.trim().split(/\s+/);
+  const first_name = partes.shift() ?? cliente.nome;
+  const last_name = partes.join(" ") || first_name;
+  const telDigits = cliente.telefone.replace(/\D/g, "");
+  const area_code = telDigits.slice(0, 2);
+  const number = telDigits.slice(2);
+  return {
+    first_name,
+    last_name,
+    email: cliente.email,
+    identification: { type: "CPF", number: cpf },
+    ...(telDigits ? { phone: { area_code, number } } : {}),
+  };
+}
+
+/* ============================================================
+ * Fluxo 1: Checkout Pro (redirect) — mantido para retrocompat.
+ * ============================================================ */
+export async function criarCheckoutMercadoPago(data: CriarCheckoutInput) {
+  const { accessToken, isSandbox } = getMercadoPagoConfig();
+  const publicUrl = getPublicAppUrl(data.origin);
+
+  const base = await criarPedidoBase(data);
+
   const preferenceBody = {
-    items: itensCalc.map((item) => ({
+    items: base.itensCalc.map((item) => ({
       id: item.produto_id,
       title: item.nome,
       quantity: item.quantidade,
       unit_price: item.preco_unitario,
       currency_id: "BRL",
     })),
-    payer: (() => {
-      const partes = data.cliente.nome.trim().split(/\s+/);
-      const first_name = partes.shift() ?? data.cliente.nome;
-      const last_name = partes.join(" ") || first_name;
-      const telDigits = data.cliente.telefone.replace(/\D/g, "");
-      const area_code = telDigits.slice(0, 2);
-      const number = telDigits.slice(2);
-      return {
-        name: data.cliente.nome,
-        first_name,
-        last_name,
-        email: data.cliente.email,
-        identification: { type: "CPF", number: cpfCliente },
-        ...(telDigits ? { phone: { area_code, number } } : {}),
-      };
-    })(),
-    external_reference: pedidoRow.id,
+    payer: {
+      name: data.cliente.nome,
+      ...payerFromCliente(data.cliente, base.cpfCliente),
+    },
+    external_reference: base.pedidoId,
     back_urls: {
-      success: `${publicUrl}/checkout/sucesso?pedido=${pedidoRow.id}`,
-      failure: `${publicUrl}/checkout/sucesso?pedido=${pedidoRow.id}&status=failure`,
-      pending: `${publicUrl}/checkout/sucesso?pedido=${pedidoRow.id}&status=pending`,
+      success: `${publicUrl}/checkout/sucesso?pedido=${base.pedidoId}`,
+      failure: `${publicUrl}/checkout/sucesso?pedido=${base.pedidoId}&status=failure`,
+      pending: `${publicUrl}/checkout/sucesso?pedido=${base.pedidoId}&status=pending`,
     },
     auto_return: "approved",
     notification_url: `${publicUrl}/api/public/webhooks/mercadopago`,
     statement_descriptor: "CARBO DO BEM",
     payment_methods: {
-      // Não excluímos nenhum método — Pix, cartão de crédito/débito e boleto ficam disponíveis.
       excluded_payment_methods: [],
       excluded_payment_types: [],
       installments: 6,
@@ -274,12 +301,7 @@ export async function criarCheckoutMercadoPago(data: CriarCheckoutInput) {
 
   if (!preferenceRes.ok) {
     const text = await preferenceRes.text().catch(() => "");
-    console.error("[MP] erro criar checkout", preferenceRes.status, text, {
-      success: preferenceBody.back_urls.success,
-      failure: preferenceBody.back_urls.failure,
-      pending: preferenceBody.back_urls.pending,
-      notification_url: preferenceBody.notification_url,
-    });
+    console.error("[MP] erro criar checkout", preferenceRes.status, text);
     throw new Error("Não foi possível iniciar o pagamento no Mercado Pago.");
   }
 
@@ -287,32 +309,190 @@ export async function criarCheckoutMercadoPago(data: CriarCheckoutInput) {
   const checkoutUrl = isSandbox ? preference.sandbox_init_point : preference.init_point;
   if (!checkoutUrl) throw new Error("Mercado Pago não retornou a URL de pagamento.");
 
-  const { error: updateError } = await supa
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  await supabaseAdmin
     .from("pedidos")
     .update({ mercadopago_preference_id: preference.id })
-    .eq("id", pedidoRow.id);
-  if (updateError) console.error("[MP] falha ao salvar preference_id", updateError);
+    .eq("id", base.pedidoId);
 
   enviarEmailConfirmacao({
-    pedidoId: pedidoRow.id,
+    pedidoId: base.pedidoId,
     cliente: data.cliente,
-    itens: itensCalc,
-    subtotal,
-    taxaEntrega,
-    valorTotal,
+    itens: base.itensCalc,
+    subtotal: base.subtotal,
+    taxaEntrega: base.taxaEntrega,
+    valorTotal: base.valorTotal,
     horarioEntrega: data.horario_entrega,
     endereco: data.endereco,
     observacoes: data.observacoes,
   });
 
   return {
-    pedido_id: pedidoRow.id,
+    pedido_id: base.pedidoId,
     preference_id: preference.id,
     checkout_url: checkoutUrl,
     is_sandbox: isSandbox,
-    subtotal,
-    taxa_entrega: taxaEntrega,
-    valor_total: valorTotal,
+    subtotal: base.subtotal,
+    taxa_entrega: base.taxaEntrega,
+    valor_total: base.valorTotal,
+  };
+}
+
+/* ============================================================
+ * Fluxo 2: Pagamento Pix nativo (QR + copia-e-cola no próprio app).
+ * ============================================================ */
+export async function criarPagamentoPixMP(data: CriarPedidoInput) {
+  const { accessToken } = getMercadoPagoConfig();
+  const base = await criarPedidoBase(data);
+  const publicUrl = getPublicAppUrl();
+
+  const body = {
+    transaction_amount: Number(base.valorTotal.toFixed(2)),
+    description: `Pedido ${base.pedidoId}`,
+    payment_method_id: "pix",
+    external_reference: base.pedidoId,
+    notification_url: `${publicUrl}/api/public/webhooks/mercadopago`,
+    statement_descriptor: "CARBO DO BEM",
+    payer: {
+      email: data.cliente.email,
+      first_name: payerFromCliente(data.cliente, base.cpfCliente).first_name,
+      last_name: payerFromCliente(data.cliente, base.cpfCliente).last_name,
+      identification: { type: "CPF", number: base.cpfCliente },
+    },
+  };
+
+  const res = await fetch("https://api.mercadopago.com/v1/payments", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+      "X-Idempotency-Key": `pix-${base.pedidoId}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    console.error("[MP] erro criar pix", res.status, text);
+    throw new Error("Não foi possível gerar o Pix.");
+  }
+
+  const payment = (await res.json()) as MercadoPagoPayment;
+  const td = payment.point_of_interaction?.transaction_data;
+  if (!td?.qr_code) throw new Error("Mercado Pago não retornou o QR do Pix.");
+
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  await supabaseAdmin
+    .from("pedidos")
+    .update({ mercadopago_payment_id: String(payment.id) })
+    .eq("id", base.pedidoId);
+
+  enviarEmailConfirmacao({
+    pedidoId: base.pedidoId,
+    cliente: data.cliente,
+    itens: base.itensCalc,
+    subtotal: base.subtotal,
+    taxaEntrega: base.taxaEntrega,
+    valorTotal: base.valorTotal,
+    horarioEntrega: data.horario_entrega,
+    endereco: data.endereco,
+    observacoes: data.observacoes,
+  });
+
+  return {
+    pedido_id: base.pedidoId,
+    payment_id: String(payment.id),
+    status: mapMercadoPagoStatus(payment.status).pagamentoStatus,
+    qr_code: td.qr_code,
+    qr_code_base64: td.qr_code_base64 ?? null,
+    ticket_url: td.ticket_url ?? null,
+    expires_at: payment.date_of_expiration ?? null,
+    valor_total: base.valorTotal,
+  };
+}
+
+/* ============================================================
+ * Fluxo 3: Pagamento com cartão (token gerado no cliente via MP.js).
+ * O front tokeniza os dados do cartão localmente com a public key —
+ * nenhum PAN/CVV toca nosso servidor.
+ * ============================================================ */
+export type CartaoInput = {
+  token: string;
+  payment_method_id: string;
+  installments: number;
+  issuer_id?: string | null;
+};
+
+export async function criarPagamentoCartaoMP(
+  data: CriarPedidoInput & { cartao: CartaoInput },
+) {
+  const { accessToken } = getMercadoPagoConfig();
+  const base = await criarPedidoBase(data);
+  const publicUrl = getPublicAppUrl();
+
+  const body: Record<string, unknown> = {
+    transaction_amount: Number(base.valorTotal.toFixed(2)),
+    description: `Pedido ${base.pedidoId}`,
+    token: data.cartao.token,
+    installments: data.cartao.installments,
+    payment_method_id: data.cartao.payment_method_id,
+    external_reference: base.pedidoId,
+    notification_url: `${publicUrl}/api/public/webhooks/mercadopago`,
+    statement_descriptor: "CARBO DO BEM",
+    payer: {
+      email: data.cliente.email,
+      identification: { type: "CPF", number: base.cpfCliente },
+    },
+  };
+  if (data.cartao.issuer_id) body.issuer_id = data.cartao.issuer_id;
+
+  const res = await fetch("https://api.mercadopago.com/v1/payments", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+      "X-Idempotency-Key": `card-${base.pedidoId}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  const payment = (await res.json().catch(() => ({}))) as MercadoPagoPayment & {
+    message?: string;
+  };
+
+  if (!res.ok) {
+    console.error("[MP] erro criar cartao", res.status, payment);
+    throw new Error(payment.message || "Não foi possível processar o cartão.");
+  }
+
+  const { pedidoStatus, pagamentoStatus } = mapMercadoPagoStatus(payment.status);
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  await supabaseAdmin
+    .from("pedidos")
+    .update({
+      status: pedidoStatus,
+      mercadopago_payment_id: String(payment.id),
+    })
+    .eq("id", base.pedidoId);
+
+  enviarEmailConfirmacao({
+    pedidoId: base.pedidoId,
+    cliente: data.cliente,
+    itens: base.itensCalc,
+    subtotal: base.subtotal,
+    taxaEntrega: base.taxaEntrega,
+    valorTotal: base.valorTotal,
+    horarioEntrega: data.horario_entrega,
+    endereco: data.endereco,
+    observacoes: data.observacoes,
+  });
+
+  return {
+    pedido_id: base.pedidoId,
+    payment_id: String(payment.id),
+    status: pagamentoStatus,
+    status_detail: payment.status_detail ?? null,
+    valor_total: base.valorTotal,
   };
 }
 
@@ -355,13 +535,11 @@ export async function consultarPagamentoMercadoPago(paymentId: string) {
   const payRes = await fetch(`https://api.mercadopago.com/v1/payments/${paymentId}`, {
     headers: { Authorization: `Bearer ${accessToken}` },
   });
-
   if (!payRes.ok) {
     const text = await payRes.text().catch(() => "");
     console.error("[MP] erro ao consultar pagamento", payRes.status, text);
     throw new Error("Não foi possível consultar o pagamento.");
   }
-
   return (await payRes.json()) as MercadoPagoPayment;
 }
 
@@ -396,7 +574,6 @@ export async function sincronizarPagamentoPedido(params: {
       mercadopago_payment_id: String(payment.id),
     })
     .eq("id", pedidoId);
-
   if (error) throw new Error(error.message);
 
   return {
