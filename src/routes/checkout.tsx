@@ -26,8 +26,11 @@ const SALMAO_DEV: ItemCarrinho = {
 
 function CheckoutPage() {
   const { itens, limpar, adicionar } = useCart();
+  const navigate = useNavigate();
 
   const [hydrated, setHydrated] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [isDev, setIsDev] = useState(false);
   const [etapa, setEtapa] = useState<Etapa>(1);
   const [erro, setErro] = useState<string | null>(null);
@@ -64,6 +67,24 @@ function CheckoutPage() {
     setIsDev(dev);
     setHydrated(true);
   }, []);
+
+  // Requer login para checkout. Se não estiver logado, redireciona para /auth
+  // preservando o retorno. Também pré-preenche o e-mail com o da sessão.
+  React.useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      const session = data.session;
+      if (!session) {
+        navigate({ to: "/auth", search: { redirect: "/checkout" } });
+        return;
+      }
+      const email = session.user.email ?? "";
+      setUserEmail(email);
+      setCliente((p) => ({ ...p, email: p.email || email }));
+      setEmailConfirm((prev) => prev || email);
+      setAuthChecked(true);
+    });
+  }, [navigate]);
+
 
   React.useEffect(() => {
     if (!isDev) return;
