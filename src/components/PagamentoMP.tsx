@@ -36,17 +36,16 @@ type Props = {
 type Metodo = "pix" | "cartao" | "redirect";
 
 // SDK v2 do Mercado Pago injetado via <script>
+type MpInstance = {
+  createCardToken: (data: Record<string, string>) => Promise<{ id: string }>;
+  getPaymentMethods: (data: { bin: string }) => Promise<{
+    results: Array<{ id: string; payment_type_id: string; issuer?: { id: string } }>;
+  }>;
+};
+type MpConstructor = new (publicKey: string, opts?: { locale?: string }) => MpInstance;
 declare global {
   interface Window {
-    MercadoPago?: new (
-      publicKey: string,
-      opts?: { locale?: string },
-    ) => {
-      createCardToken: (data: Record<string, string>) => Promise<{ id: string }>;
-      getPaymentMethods: (data: { bin: string }) => Promise<{
-        results: Array<{ id: string; payment_type_id: string; issuer?: { id: string } }>;
-      }>;
-    };
+    MercadoPago?: MpConstructor;
   }
 }
 
@@ -354,7 +353,7 @@ function FluxoCartao({
   const fnPublicKey = useServerFn(obterMercadoPagoPublicKey);
   const fnCriar = useServerFn(criarPagamentoCartao);
 
-  const [mp, setMp] = useState<ReturnType<NonNullable<Window["MercadoPago"]>> | null>(null);
+  const [mp, setMp] = useState<MpInstance | null>(null);
   const [carregandoSdk, setCarregandoSdk] = useState(true);
   const [erroSdk, setErroSdk] = useState<string | null>(null);
 
