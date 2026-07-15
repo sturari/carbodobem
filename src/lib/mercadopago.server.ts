@@ -18,6 +18,7 @@ type ClienteInput = {
   nome: string;
   telefone: string;
   email: string;
+  cpf: string;
 };
 
 type EnderecoInput = {
