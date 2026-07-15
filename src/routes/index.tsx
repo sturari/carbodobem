@@ -118,9 +118,11 @@ function Home() {
                   gramatura_g: p.gramatura_g,
                   categoria: p.categoria,
                   imagem_url: p.imagem_url,
+                  estoque: p.estoque,
                 }}
               />
             ))}
+
           </div>
         )}
       </section>
