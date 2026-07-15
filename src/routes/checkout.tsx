@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import React, { useState } from "react";
 import { ArrowLeft, Check, Loader2 } from "lucide-react";
 import { useCart } from "@/lib/cart-store";
 import { formatBRL, formatCEP, formatTelefone, onlyDigits } from "@/lib/format";
@@ -254,17 +254,16 @@ function CheckoutPage() {
             )}
 
             {etapa === 4 && (
-              <div className="space-y-4">
-                <h2 className="font-display text-lg font-bold">Quando entregar?</h2>
-                <Campo label="Data e horário de entrega">
-                  <input
-                    className="input"
-                    type="datetime-local"
-                    min={new Date(Date.now() + 24 * 3600 * 1000).toISOString().slice(0, 16)}
-                    value={horario}
-                    onChange={(e) => setHorario(e.target.value)}
-                  />
-                </Campo>
+              <div className="space-y-5">
+                <div>
+                  <h2 className="font-display text-lg font-bold">Quando entregar?</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Escolha o dia e o horário que preferir.
+                  </p>
+                </div>
+
+                <SeletorHorario value={horario} onChange={setHorario} />
+
                 <Campo label="Observações (opcional)">
                   <textarea
                     className="input min-h-24"
@@ -275,6 +274,7 @@ function CheckoutPage() {
                 </Campo>
               </div>
             )}
+
 
             {etapa === 5 && (
               <div className="space-y-4">
@@ -420,3 +420,142 @@ function Campo({ label, children }: { label: string; children: React.ReactNode }
     </label>
   );
 }
+
+// ============ Seletor de horário amigável ============
+const DIAS_SEMANA_CURTO = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const MESES_CURTO = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+
+// Slots de entrega disponíveis (24h de antecedência é aplicada por dia)
+const SLOTS_HORARIO = [
+  { hora: 9, label: "09:00" },
+  { hora: 11, label: "11:00" },
+  { hora: 14, label: "14:00" },
+  { hora: 16, label: "16:00" },
+  { hora: 18, label: "18:00" },
+];
+
+function SeletorHorario({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  // Gera os próximos 7 dias a partir de amanhã
+  const dias = React.useMemo(() => {
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(hoje);
+      d.setDate(hoje.getDate() + i + 1);
+      return d;
+    });
+  }, []);
+
+  // Reconstitui seleção a partir do valor atual (datetime-local string)
+  const selecao = React.useMemo(() => {
+    if (!value) return { diaIdx: -1, hora: -1 };
+    const dt = new Date(value);
+    const diaIdx = dias.findIndex(
+      (d) =>
+        d.getFullYear() === dt.getFullYear() &&
+        d.getMonth() === dt.getMonth() &&
+        d.getDate() === dt.getDate(),
+    );
+    return { diaIdx, hora: dt.getHours() };
+  }, [value, dias]);
+
+  const [diaAtivo, setDiaAtivo] = React.useState<number>(
+    selecao.diaIdx >= 0 ? selecao.diaIdx : 0,
+  );
+
+  React.useEffect(() => {
+    if (selecao.diaIdx >= 0) setDiaAtivo(selecao.diaIdx);
+  }, [selecao.diaIdx]);
+
+  function escolher(diaIdx: number, hora: number) {
+    const d = new Date(dias[diaIdx]);
+    d.setHours(hora, 0, 0, 0);
+    // formato datetime-local (YYYY-MM-DDTHH:mm) para compatibilidade com o resto do fluxo
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const s = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    onChange(s);
+    setDiaAtivo(diaIdx);
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Dias */}
+      <div>
+        <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Escolha o dia
+        </span>
+        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+          {dias.map((d, i) => {
+            const ativo = i === diaAtivo;
+            return (
+              <button
+                key={i}
+                type="button"
+                onClick={() => setDiaAtivo(i)}
+                className={`flex min-w-[68px] flex-col items-center gap-0.5 rounded-2xl border px-3 py-2.5 text-sm transition ${
+                  ativo
+                    ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                    : "border-border/70 bg-card hover:border-primary/50 hover:bg-muted"
+                }`}
+              >
+                <span className="text-[10px] font-semibold uppercase tracking-wide opacity-80">
+                  {DIAS_SEMANA_CURTO[d.getDay()]}
+                </span>
+                <span className="text-lg font-bold leading-none">{d.getDate()}</span>
+                <span className="text-[10px] opacity-70">{MESES_CURTO[d.getMonth()]}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Slots de horário */}
+      <div>
+        <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Escolha o horário
+        </span>
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-5">
+          {SLOTS_HORARIO.map((slot) => {
+            const selecionado =
+              selecao.diaIdx === diaAtivo && selecao.hora === slot.hora;
+            return (
+              <button
+                key={slot.hora}
+                type="button"
+                onClick={() => escolher(diaAtivo, slot.hora)}
+                className={`rounded-xl border px-3 py-2.5 text-sm font-semibold transition ${
+                  selecionado
+                    ? "border-warm bg-warm text-white shadow"
+                    : "border-border/70 bg-card hover:border-warm/60 hover:bg-muted"
+                }`}
+              >
+                {slot.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {value && (
+        <div className="rounded-lg bg-primary/10 px-3 py-2 text-sm text-primary">
+          ✔ Entrega agendada para{" "}
+          <strong>
+            {dias[diaAtivo]?.toLocaleDateString("pt-BR", {
+              weekday: "long",
+              day: "2-digit",
+              month: "long",
+            })}
+          </strong>{" "}
+          às <strong>{new Date(value).getHours().toString().padStart(2, "0")}:00</strong>
+        </div>
+      )}
+    </div>
+  );
+}
+
