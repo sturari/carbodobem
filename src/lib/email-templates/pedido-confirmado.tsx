@@ -13,6 +13,8 @@ import {
   Text,
 } from '@react-email/components'
 import type { TemplateEntry } from './registry'
+import { BrandFooter } from './_shared'
+
 
 interface Item {
   nome: string
