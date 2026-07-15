@@ -220,7 +220,7 @@ function PedidosTab() {
             >
               {STATUS_OPTIONS.map((s) => (
                 <option key={s} value={s}>
-                  {s.replaceAll("_", " ")}
+                  {STATUS_LABEL[s]}
                 </option>
               ))}
             </select>
