@@ -169,6 +169,7 @@ export type Database = {
           observacoes: string | null
           status: Database["public"]["Enums"]["status_pedido"]
           updated_at: string
+          user_id: string | null
           valor_total: number
         }
         Insert: {
@@ -182,6 +183,7 @@ export type Database = {
           observacoes?: string | null
           status?: Database["public"]["Enums"]["status_pedido"]
           updated_at?: string
+          user_id?: string | null
           valor_total: number
         }
         Update: {
@@ -195,6 +197,7 @@ export type Database = {
           observacoes?: string | null
           status?: Database["public"]["Enums"]["status_pedido"]
           updated_at?: string
+          user_id?: string | null
           valor_total?: number
         }
         Relationships: [
