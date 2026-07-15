@@ -191,9 +191,12 @@ function FluxoPix({
     payment_id: string;
     qr_code: string;
     qr_code_base64: string | null;
+    expires_at: string | null;
   } | null>(null);
   const [status, setStatus] = useState<string>("aguardando");
   const [copiado, setCopiado] = useState(false);
+  const [agora, setAgora] = useState(() => Date.now());
+  const [verificando, setVerificando] = useState(false);
   const submissaoRef = useRef(false);
 
   useEffect(() => {
@@ -209,6 +212,7 @@ function FluxoPix({
           payment_id: r.payment_id,
           qr_code: r.qr_code,
           qr_code_base64: r.qr_code_base64,
+          expires_at: r.expires_at,
         });
         setStatus(r.status);
         onCriado?.();
@@ -221,6 +225,13 @@ function FluxoPix({
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Tick a cada 1s para o countdown
+  useEffect(() => {
+    if (!pix?.expires_at || status === "aprovado" || status === "recusado") return;
+    const id = setInterval(() => setAgora(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [pix?.expires_at, status]);
 
   // Polling do status enquanto não aprovado / recusado
   useEffect(() => {
