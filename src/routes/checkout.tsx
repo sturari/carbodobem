@@ -1,6 +1,6 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import React, { useState } from "react";
 import { ArrowLeft, Check, Loader2 } from "lucide-react";
 import { useCart } from "@/lib/cart-store";
 import { formatBRL, formatCEP, formatTelefone, onlyDigits } from "@/lib/format";
