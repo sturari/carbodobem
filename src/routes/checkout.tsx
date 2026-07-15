@@ -415,8 +415,8 @@ function CheckoutPage() {
                 </button>
               </div>
             )}
-            </div>
           </div>
+
 
           <aside className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm h-fit">
             <h3 className="font-display font-bold">Resumo</h3>
