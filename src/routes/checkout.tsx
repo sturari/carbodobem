@@ -43,6 +43,36 @@ function CheckoutPage() {
   const fnCriarPedido = useServerFn(criarPedido);
   const fnCriarMP = useServerFn(criarPreferenciaMP);
 
+  // Atalho de desenvolvimento (apenas via URL): /checkout?dev=1
+  // Pré-preenche os dados e pula direto para a etapa de horário.
+  // Requer ao menos 1 item no carrinho.
+  React.useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("dev") !== "1") return;
+    if (itens.length === 0) return;
+    setCliente({
+      nome: "Teste Lovable",
+      telefone: "(61) 99999-9999",
+      email: "felipe.sturari@gmail.com",
+    });
+    setEmailConfirm("felipe.sturari@gmail.com");
+    setCepInput("71503-505");
+    setTaxaEntrega(15);
+    setEndereco({
+      cep: "71503505",
+      rua: "Quadra CA 5",
+      numero: "101",
+      complemento: "Ed. Teste",
+      bairro: "Setor de Habitações Individuais Norte",
+      cidade: "Brasília",
+      uf: "DF",
+    });
+    setEtapa(4);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+
   if (itens.length === 0 && etapa < 5) {
     return (
       <div className="mx-auto max-w-md p-8 text-center">
