@@ -79,23 +79,26 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Carbo do Bem — Comida ultra-congelada com entrega agendada" },
+      { title: "Carbo do Bem — Comida de verdade ultracongelada" },
       {
         name: "description",
         content:
-          "Refeições artesanais ultra-congeladas com entrega agendada em São Paulo. Peça em poucos cliques, sem cadastro, pague no PIX, cartão ou boleto.",
+          "Refeições artesanais saudáveis e ultracongeladas com entrega agendada em Brasília. Peça em poucos cliques e receba no conforto da sua casa.",
       },
-      { property: "og:title", content: "Carbo do Bem" },
+      { property: "og:title", content: "Carbo do Bem — Comida de verdade ultracongelada" },
       {
         property: "og:description",
-        content: "Comida congelada de verdade, entregue no horário que você escolher.",
+        content: "Refeições artesanais saudáveis e ultracongeladas com entrega agendada em Brasília. Peça em poucos cliques e receba no conforto da sua casa.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:title", content: "Carbo do Bem — Comida de verdade ultracongelada" },
+      { name: "twitter:description", content: "Refeições artesanais saudáveis e ultracongeladas com entrega agendada em Brasília. Peça em poucos cliques e receba no conforto da sua casa." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/d2ffe429-2502-4813-9d22-a16512c75f1b/id-preview-d92861c4--58f6f86b-1d2b-449d-b777-7408cba43a69.lovable.app-1784156620827.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/d2ffe429-2502-4813-9d22-a16512c75f1b/id-preview-d92861c4--58f6f86b-1d2b-449d-b777-7408cba43a69.lovable.app-1784156620827.png" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       {
