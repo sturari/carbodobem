@@ -156,6 +156,11 @@ function CheckoutPage() {
       setErro("Preencha nome, telefone válido e confirme seu e-mail.");
       return;
     }
+    if (!isCPFValido(cpfInput)) {
+      setErro("Informe um CPF válido — é exigido pelo Mercado Pago para gerar o Pix.");
+      return;
+    }
+    setCliente((p) => ({ ...p, cpf: onlyDigits(cpfInput) }));
     proximo();
   }
 
