@@ -123,7 +123,7 @@ function CheckoutPage() {
   }, [isDev]);
 
 
-  if (!hydrated) {
+  if (!hydrated || !authChecked) {
     return (
       <div className="mx-auto max-w-md p-8 text-center">
         <Loader2 className="mx-auto h-5 w-5 animate-spin text-primary" />
