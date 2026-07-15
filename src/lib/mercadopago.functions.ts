@@ -1,6 +1,8 @@
 import { createServerFn } from "@tanstack/react-start";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 import type { CreatePreferenceResult } from "./mercadopago";
+
 
 const checkoutSchema = z.object({
   cliente: z.object({
