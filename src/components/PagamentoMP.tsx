@@ -36,11 +36,17 @@ type Props = {
 type Metodo = "pix" | "cartao" | "redirect";
 
 // SDK v2 do Mercado Pago injetado via <script>
+type MpPaymentMethod = {
+  id: string;
+  name?: string;
+  payment_type_id: string;
+  thumbnail?: string;
+  secure_thumbnail?: string;
+  issuer?: { id: string };
+};
 type MpInstance = {
   createCardToken: (data: Record<string, string>) => Promise<{ id: string }>;
-  getPaymentMethods: (data: { bin: string }) => Promise<{
-    results: Array<{ id: string; payment_type_id: string; issuer?: { id: string } }>;
-  }>;
+  getPaymentMethods: (data: { bin: string }) => Promise<{ results: MpPaymentMethod[] }>;
 };
 type MpConstructor = new (publicKey: string, opts?: { locale?: string }) => MpInstance;
 declare global {
