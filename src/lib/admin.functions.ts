@@ -182,3 +182,95 @@ export const atualizarProduto = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return row;
   });
+
+// ============ REEMBOLSO ============
+
+export const reembolsarPedido = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw) =>
+    z.object({ pedido_id: z.string().uuid() }).parse(raw),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+
+    const { data: pedido, error: pedidoErr } = await context.supabase
+      .from("pedidos")
+      .select("id, status, mercadopago_payment_id")
+      .eq("id", data.pedido_id)
+      .maybeSingle();
+    if (pedidoErr) throw new Error(pedidoErr.message);
+    if (!pedido) throw new Error("Pedido não encontrado.");
+    if (!pedido.mercadopago_payment_id) {
+      throw new Error("Pedido sem pagamento vinculado ao Mercado Pago.");
+    }
+    if (pedido.status === "cancelado") {
+      throw new Error("Pedido já está cancelado/reembolsado.");
+    }
+
+    const { getMercadoPagoConfig } = await import("@/lib/mercadopago.server");
+    const { accessToken } = getMercadoPagoConfig();
+
+    // Reembolso total no Mercado Pago (idempotente por pedido).
+    const res = await fetch(
+      `https://api.mercadopago.com/v1/payments/${pedido.mercadopago_payment_id}/refunds`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+          "X-Idempotency-Key": `refund-${pedido.id}`,
+        },
+        body: JSON.stringify({}),
+      },
+    );
+
+    if (!res.ok) {
+      const text = await res.text().catch(() => "");
+      console.error("[MP refund] falha", res.status, text);
+      throw new Error(
+        `Falha ao reembolsar no Mercado Pago (${res.status}). ${text.slice(0, 200)}`,
+      );
+    }
+
+    const refund = (await res.json().catch(() => ({}))) as {
+      id?: number;
+      status?: string;
+    };
+
+    // Marca o pedido como cancelado. O webhook do MP também sincroniza o status.
+    const { error: updErr } = await context.supabase
+      .from("pedidos")
+      .update({ status: "cancelado" })
+      .eq("id", pedido.id);
+    if (updErr) throw new Error(updErr.message);
+
+    return { ok: true, refund_id: refund.id ?? null, status: refund.status ?? null };
+  });
+
+// ============ SINCRONIZAR STATUS COM MP ============
+
+export const sincronizarPedidoMP = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((raw) =>
+    z.object({ pedido_id: z.string().uuid() }).parse(raw),
+  )
+  .handler(async ({ data, context }) => {
+    await assertAdmin(context);
+    const { data: pedido, error } = await context.supabase
+      .from("pedidos")
+      .select("id, mercadopago_payment_id")
+      .eq("id", data.pedido_id)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!pedido?.mercadopago_payment_id) {
+      throw new Error("Pedido sem pagamento vinculado ao Mercado Pago.");
+    }
+    const { sincronizarPagamentoPedido } = await import(
+      "@/lib/mercadopago.server"
+    );
+    return sincronizarPagamentoPedido({
+      pedidoId: pedido.id,
+      paymentId: pedido.mercadopago_payment_id,
+    });
+  });
+

@@ -9,6 +9,8 @@ import {
   criarProduto,
   listarPedidosAdmin,
   listarProdutosAdmin,
+  reembolsarPedido,
+  sincronizarPedidoMP,
   verificarAdmin,
 } from "@/lib/admin.functions";
 import { formatBRL } from "@/lib/format";
@@ -129,6 +131,8 @@ function AdminPage() {
 function PedidosTab() {
   const listFn = useServerFn(listarPedidosAdmin);
   const updateFn = useServerFn(atualizarStatusPedido);
+  const refundFn = useServerFn(reembolsarPedido);
+  const syncFn = useServerFn(sincronizarPedidoMP);
   const qc = useQueryClient();
 
   const pedidosQ = useQuery({
@@ -140,6 +144,24 @@ function PedidosTab() {
     mutationFn: (v: { pedido_id: string; status: StatusPedido }) =>
       updateFn({ data: v }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-pedidos"] }),
+  });
+
+  const refundMut = useMutation({
+    mutationFn: (pedido_id: string) => refundFn({ data: { pedido_id } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-pedidos"] });
+      alert("Reembolso solicitado com sucesso no Mercado Pago.");
+    },
+    onError: (e: Error) => alert(e.message),
+  });
+
+  const syncMut = useMutation({
+    mutationFn: (pedido_id: string) => syncFn({ data: { pedido_id } }),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ["admin-pedidos"] });
+      alert(`Status sincronizado com o Mercado Pago: ${res.status}`);
+    },
+    onError: (e: Error) => alert(e.message),
   });
 
   if (pedidosQ.isLoading)
@@ -225,11 +247,45 @@ function PedidosTab() {
               ))}
             </select>
             {p.mercadopago_payment_id && (
-              <span className="text-xs text-muted-foreground">
-                MP: {p.mercadopago_payment_id}
-              </span>
+              <>
+                <span className="text-xs text-muted-foreground">
+                  MP: {p.mercadopago_payment_id}
+                </span>
+                <button
+                  type="button"
+                  disabled={syncMut.isPending}
+                  onClick={() => syncMut.mutate(p.id)}
+                  className="rounded-md border border-input px-2 py-1 text-xs hover:bg-muted disabled:opacity-50"
+                  title="Consultar status atual no Mercado Pago"
+                >
+                  {syncMut.isPending && syncMut.variables === p.id
+                    ? "Sincronizando..."
+                    : "Sincronizar MP"}
+                </button>
+                {p.status !== "cancelado" && (
+                  <button
+                    type="button"
+                    disabled={refundMut.isPending}
+                    onClick={() => {
+                      if (
+                        confirm(
+                          `Reembolsar integralmente o pedido #${p.id.slice(0, 8)} no Mercado Pago? Esta ação não pode ser desfeita.`,
+                        )
+                      ) {
+                        refundMut.mutate(p.id);
+                      }
+                    }}
+                    className="rounded-md border border-destructive/50 bg-destructive/10 px-2 py-1 text-xs text-destructive hover:bg-destructive/20 disabled:opacity-50"
+                  >
+                    {refundMut.isPending && refundMut.variables === p.id
+                      ? "Reembolsando..."
+                      : "Reembolsar"}
+                  </button>
+                )}
+              </>
             )}
           </div>
+
         </article>
       ))}
       {pedidosQ.data && pedidosQ.data.length === 0 && (
