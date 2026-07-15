@@ -430,11 +430,24 @@ export async function criarPagamentoCartaoMP(
   const base = await criarPedidoBase(data);
   const publicUrl = getPublicAppUrl();
 
+  // Juros aplicados server-side (fonte da verdade). O cliente só exibe.
+  const { totalComJuros, MIN_PARCELAMENTO_BRL, MAX_PARCELAS } = await import(
+    "@/lib/parcelamento"
+  );
+  let installments = Math.min(
+    Math.max(1, Math.floor(data.cartao.installments)),
+    MAX_PARCELAS,
+  );
+  if (installments > 1 && base.valorTotal <= MIN_PARCELAMENTO_BRL) {
+    installments = 1;
+  }
+  const valorCobrado = totalComJuros(base.valorTotal, installments);
+
   const body: Record<string, unknown> = {
-    transaction_amount: Number(base.valorTotal.toFixed(2)),
+    transaction_amount: Number(valorCobrado.toFixed(2)),
     description: `Pedido ${base.pedidoId}`,
     token: data.cartao.token,
-    installments: data.cartao.installments,
+    installments,
     payment_method_id: data.cartao.payment_method_id,
     external_reference: base.pedidoId,
     notification_url: `${publicUrl}/api/public/webhooks/mercadopago`,
@@ -445,6 +458,7 @@ export async function criarPagamentoCartaoMP(
     },
   };
   if (data.cartao.issuer_id) body.issuer_id = data.cartao.issuer_id;
+
 
   const res = await fetch("https://api.mercadopago.com/v1/payments", {
     method: "POST",
