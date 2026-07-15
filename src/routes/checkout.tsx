@@ -165,9 +165,21 @@ function CheckoutPage() {
   async function finalizarPagamento() {
     setErro(null);
     setCarregando(true);
-    // Abre uma aba imediatamente (com user-activation) para evitar bloqueio
-    // de popup e a política X-Frame-Options do Mercado Pago no iframe do preview.
-    const janelaPagamento = window.open("about:blank", "_blank", "noopener,noreferrer");
+    // Abre a aba imediatamente (com user-activation) e mantém o handle para
+    // direcioná-la ao Mercado Pago depois que o pedido/preferência forem criados.
+    // Não usamos `noopener` aqui porque alguns navegadores retornam `null`,
+    // deixando uma aba about:blank aberta e acionando também o fallback no preview.
+    const janelaPagamento = window.open("about:blank", "_blank");
+    if (janelaPagamento) {
+      try {
+        janelaPagamento.document.title = "Redirecionando...";
+        janelaPagamento.document.body.innerHTML =
+          '<p style="font-family: system-ui, sans-serif; padding: 24px; color: #111827;">Redirecionando para o Mercado Pago...</p>';
+        janelaPagamento.opener = null;
+      } catch {
+        /* ignora limitações do navegador */
+      }
+    }
 
     try {
       const pedido = await fnCriarPedido({
@@ -201,11 +213,11 @@ function CheckoutPage() {
 
       // 1) Se conseguimos abrir a aba no clique, apenas navegamos ela.
       if (janelaPagamento && !janelaPagamento.closed) {
-        janelaPagamento.location.href = url;
+        janelaPagamento.location.assign(url);
         return;
       }
 
-      // 2) Tenta escapar do iframe do preview via top-level.
+      // 2) Se o popup foi bloqueado, tenta escapar do iframe do preview via top-level.
       try {
         if (window.top && window.top !== window.self) {
           window.top.location.href = url;
