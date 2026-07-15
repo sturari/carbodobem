@@ -142,8 +142,22 @@ function CheckoutPage() {
       });
 
       limpar();
-      // Redireciona ao Checkout Pro do Mercado Pago
-      window.location.href = pref.init_point;
+      // Redireciona ao Checkout Pro do MP. Usa top-level para escapar do
+      // iframe do preview do Lovable (o MP bloqueia embed via X-Frame-Options).
+      const url = pref.checkout_url;
+      try {
+        if (window.top && window.top !== window.self) {
+          window.top.location.href = url;
+          return;
+        }
+      } catch {
+        // cross-origin: cai no fallback
+      }
+      // Tenta nova aba primeiro (funciona dentro do preview mesmo com sandbox)
+      const novaAba = window.open(url, "_blank", "noopener,noreferrer");
+      if (!novaAba) {
+        window.location.href = url;
+      }
 
     } catch (e: unknown) {
       setErro(e instanceof Error ? e.message : "Erro ao processar pedido.");
