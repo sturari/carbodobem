@@ -428,6 +428,31 @@ function FluxoCartao({
 
   const [processando, setProcessando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const [bandeira, setBandeira] = useState<MpPaymentMethod | null>(null);
+
+  // Detecta bandeira em tempo real via BIN (a partir de 6 dígitos)
+  useEffect(() => {
+    if (!mp) return;
+    const digits = numero.replace(/\D/g, "");
+    if (digits.length < 6) {
+      setBandeira(null);
+      return;
+    }
+    const bin = digits.slice(0, 8);
+    let cancelado = false;
+    const t = setTimeout(async () => {
+      try {
+        const pm = await mp.getPaymentMethods({ bin });
+        if (!cancelado) setBandeira(pm.results[0] ?? null);
+      } catch {
+        if (!cancelado) setBandeira(null);
+      }
+    }, 250);
+    return () => {
+      cancelado = true;
+      clearTimeout(t);
+    };
+  }, [numero, mp]);
 
   useEffect(() => {
     (async () => {
