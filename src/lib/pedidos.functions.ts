@@ -65,11 +65,18 @@ export const criarPedido = createServerFn({ method: "POST" })
     const itensCalc = data.itens.map((it) => {
       const p = produtos.find((x) => x.id === it.produto_id)!;
       if (!p.ativo) throw new Error(`Produto indisponível: ${p.nome}`);
+      if (p.estoque <= 0) throw new Error(`Produto sem estoque: ${p.nome}`);
+      if (it.quantidade > p.estoque) {
+        throw new Error(
+          `Estoque insuficiente para ${p.nome} (disponível: ${p.estoque}).`,
+        );
+      }
       const preco = Number(p.preco);
       subtotal += preco * it.quantidade;
       return { produto_id: p.id, quantidade: it.quantidade, preco_unitario: preco };
     });
     const valor_total = subtotal + taxa;
+
 
     // 3) cria cliente
     const { data: clienteRow, error: clErr } = await supa

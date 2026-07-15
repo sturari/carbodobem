@@ -6,7 +6,7 @@ type SupabaseAdmin = Awaited<
 
 type ProdutoRow = Pick<
   Database["public"]["Tables"]["produtos"]["Row"],
-  "id" | "nome" | "preco" | "ativo"
+  "id" | "nome" | "preco" | "ativo" | "estoque"
 >;
 
 type CheckoutItem = {
@@ -37,7 +37,9 @@ type CriarCheckoutInput = {
   itens: CheckoutItem[];
   observacoes?: string | null;
   origin?: string;
+  user_id?: string;
 };
+
 
 type MercadoPagoPreference = {
   id: string;
@@ -127,7 +129,7 @@ async function buscarProdutos(supa: SupabaseAdmin, itens: CheckoutItem[]) {
 
   const { data: produtos, error } = await supa
     .from("produtos")
-    .select("id, nome, preco, ativo")
+    .select("id, nome, preco, ativo, estoque")
     .in("id", idsUnicos);
   if (error) throw new Error(error.message);
   if (!produtos || produtos.length !== idsUnicos.length) {
@@ -136,6 +138,7 @@ async function buscarProdutos(supa: SupabaseAdmin, itens: CheckoutItem[]) {
 
   return produtos as ProdutoRow[];
 }
+
 
 export async function criarCheckoutMercadoPago(data: CriarCheckoutInput) {
   const { supabaseAdmin: supa } = await import("@/integrations/supabase/client.server");
@@ -151,6 +154,14 @@ export async function criarCheckoutMercadoPago(data: CriarCheckoutInput) {
     const produto = produtos.find((p) => p.id === item.produto_id);
     if (!produto) throw new Error("Produto inválido no pedido.");
     if (!produto.ativo) throw new Error(`Produto indisponível: ${produto.nome}`);
+    if (produto.estoque <= 0) {
+      throw new Error(`Produto sem estoque: ${produto.nome}`);
+    }
+    if (item.quantidade > produto.estoque) {
+      throw new Error(
+        `Estoque insuficiente para ${produto.nome} (disponível: ${produto.estoque}).`,
+      );
+    }
     const preco = Number(produto.preco);
     subtotal += preco * item.quantidade;
     return {
@@ -190,12 +201,14 @@ export async function criarCheckoutMercadoPago(data: CriarCheckoutInput) {
       valor_total: valorTotal,
       observacoes: data.observacoes ?? null,
       status: "pendente",
+      user_id: data.user_id ?? null,
     })
     .select("id")
     .single();
   if (pedidoError || !pedidoRow) {
     throw new Error(pedidoError?.message ?? "Falha ao criar pedido.");
   }
+
 
   const { error: itensError } = await supa.from("itens_pedido").insert(
     itensCalc.map((item) => ({

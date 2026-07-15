@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import React, { useState } from "react";
 import { ArrowLeft, Check, ExternalLink, Loader2 } from "lucide-react";
@@ -6,10 +6,12 @@ import { type ItemCarrinho, useCart } from "@/lib/cart-store";
 import { formatBRL, formatCEP, formatTelefone, onlyDigits } from "@/lib/format";
 import { validarCEP } from "@/lib/cep.functions";
 import { iniciarCheckoutMercadoPago } from "@/lib/mercadopago.functions";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/checkout")({
   component: CheckoutPage,
 });
+
 
 type Etapa = 1 | 2 | 3 | 4 | 5;
 
@@ -24,8 +26,11 @@ const SALMAO_DEV: ItemCarrinho = {
 
 function CheckoutPage() {
   const { itens, limpar, adicionar } = useCart();
+  const navigate = useNavigate();
 
   const [hydrated, setHydrated] = useState(false);
+  const [authChecked, setAuthChecked] = useState(false);
+  const [, setUserEmail] = useState<string | null>(null);
   const [isDev, setIsDev] = useState(false);
   const [etapa, setEtapa] = useState<Etapa>(1);
   const [erro, setErro] = useState<string | null>(null);
@@ -62,6 +67,24 @@ function CheckoutPage() {
     setIsDev(dev);
     setHydrated(true);
   }, []);
+
+  // Requer login para checkout. Se não estiver logado, redireciona para /auth
+  // preservando o retorno. Também pré-preenche o e-mail com o da sessão.
+  React.useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      const session = data.session;
+      if (!session) {
+        navigate({ to: "/auth", search: { redirect: "/checkout" } });
+        return;
+      }
+      const email = session.user.email ?? "";
+      setUserEmail(email);
+      setCliente((p) => ({ ...p, email: p.email || email }));
+      setEmailConfirm((prev) => prev || email);
+      setAuthChecked(true);
+    });
+  }, [navigate]);
+
 
   React.useEffect(() => {
     if (!isDev) return;
@@ -100,7 +123,7 @@ function CheckoutPage() {
   }, [isDev]);
 
 
-  if (!hydrated) {
+  if (!hydrated || !authChecked) {
     return (
       <div className="mx-auto max-w-md p-8 text-center">
         <Loader2 className="mx-auto h-5 w-5 animate-spin text-primary" />
@@ -127,15 +150,12 @@ function CheckoutPage() {
   async function acaoEtapa1() {
     setErro(null);
     if (!cliente.nome || cliente.telefone.length < 14 || !/\S+@\S+/.test(cliente.email)) {
-      setErro("Preencha nome, telefone válido e e-mail.");
-      return;
-    }
-    if (cliente.email.trim().toLowerCase() !== emailConfirm.trim().toLowerCase()) {
-      setErro("Os e-mails não coincidem. Confira a confirmação.");
+      setErro("Preencha nome, telefone válido e confirme seu e-mail.");
       return;
     }
     proximo();
   }
+
 
   async function acaoEtapa2() {
     setErro(null);
@@ -283,32 +303,20 @@ function CheckoutPage() {
                     onChange={(e) => setCliente({ ...cliente, telefone: formatTelefone(e.target.value) })}
                   />
                 </Campo>
-                <Campo label="E-mail">
+                <Campo label="E-mail (da sua conta)">
                   <input
-                    className="input"
+                    className="input opacity-70"
                     type="email"
                     autoComplete="email"
                     value={cliente.email}
-                    onChange={(e) => setCliente({ ...cliente, email: e.target.value })}
+                    readOnly
+                    disabled
                   />
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    Este é o e-mail da sua conta. Ele será usado para o recibo e para acompanhar o pedido.
+                  </span>
                 </Campo>
-                <Campo label="Confirme o e-mail">
-                  <input
-                    className="input"
-                    type="email"
-                    autoComplete="off"
-                    onPaste={(e) => e.preventDefault()}
-                    value={emailConfirm}
-                    onChange={(e) => setEmailConfirm(e.target.value)}
-                  />
-                  {emailConfirm.length > 0 &&
-                    emailConfirm.trim().toLowerCase() !==
-                      cliente.email.trim().toLowerCase() && (
-                      <span className="mt-1 block text-xs text-destructive">
-                        Os e-mails não coincidem.
-                      </span>
-                    )}
-                </Campo>
+
               </div>
             )}
 
