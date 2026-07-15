@@ -1,0 +1,1 @@
+ALTER TYPE public.status_pedido ADD VALUE IF NOT EXISTS 'pagamento_confirmado' BEFORE 'em_preparo';

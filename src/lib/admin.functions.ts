@@ -4,11 +4,13 @@ import { z } from "zod";
 
 const statusEnum = z.enum([
   "pendente",
+  "pagamento_confirmado",
   "em_preparo",
   "saiu_para_entrega",
   "entregue",
   "cancelado",
 ]);
+
 
 async function assertAdmin(ctx: { supabase: any; userId: string }) {
   const { data, error } = await ctx.supabase
@@ -39,7 +41,7 @@ export const listarPedidosAdmin = createServerFn({ method: "GET" })
       )
       // Só exibe pedidos com pagamento processado pelo webhook do MP.
       // 'pendente' = aguardando pagamento; fica oculto do painel.
-      .in("status", ["em_preparo", "saiu_para_entrega", "entregue", "cancelado"])
+      .in("status", ["pagamento_confirmado", "em_preparo", "saiu_para_entrega", "entregue", "cancelado"])
       .not("mercadopago_payment_id", "is", null)
       .order("created_at", { ascending: false })
       .limit(200);
@@ -59,8 +61,47 @@ export const atualizarStatusPedido = createServerFn({ method: "POST" })
       .update({ status: data.status })
       .eq("id", data.pedido_id);
     if (error) throw new Error(error.message);
+
+    // Envia email de mudança de status (não bloqueia o update)
+    if (data.status === "saiu_para_entrega" || data.status === "entregue") {
+      try {
+        const { data: pedido } = await context.supabase
+          .from("pedidos")
+          .select(
+            `id, valor_total, horario_entrega,
+             clientes:cliente_id ( nome, email ),
+             enderecos:endereco_id ( rua, numero, complemento, bairro, cidade, uf, cep )`,
+          )
+          .eq("id", data.pedido_id)
+          .maybeSingle();
+        const email = (pedido as any)?.clientes?.email;
+        if (email) {
+          const templateName =
+            data.status === "saiu_para_entrega"
+              ? "pedido-saiu-para-entrega"
+              : "pedido-entregue";
+          const { sendTemplateEmail } = await import(
+            "@/lib/email-templates/send-email"
+          );
+          await sendTemplateEmail(templateName, email, {
+            idempotencyKey: `${templateName}-${data.pedido_id}`,
+            templateData: {
+              nome_cliente: (pedido as any)?.clientes?.nome,
+              pedido_id: data.pedido_id,
+              valor_total: Number((pedido as any)?.valor_total ?? 0),
+              horario_entrega: (pedido as any)?.horario_entrega,
+              endereco: (pedido as any)?.enderecos,
+            },
+          });
+        }
+      } catch (e) {
+        console.error("[atualizarStatusPedido] falha ao enviar email:", e);
+      }
+    }
+
     return { ok: true };
   });
+
 
 export const verificarAdmin = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])

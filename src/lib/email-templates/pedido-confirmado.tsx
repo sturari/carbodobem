@@ -13,6 +13,8 @@ import {
   Text,
 } from '@react-email/components'
 import type { TemplateEntry } from './registry'
+import { BrandFooter } from './_shared'
+
 
 interface Item {
   nome: string
@@ -150,11 +152,8 @@ const Email = ({
           </Section>
         )}
 
-        <Section style={footer}>
-          <Text style={footerText}>
-            Qualquer dúvida, é só responder este email. Obrigado por escolher a Carbo do Bem! 💚
-          </Text>
-        </Section>
+        <BrandFooter />
+
       </Container>
     </Body>
   </Html>

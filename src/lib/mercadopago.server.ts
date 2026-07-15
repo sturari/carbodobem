@@ -88,12 +88,12 @@ export function getMercadoPagoConfig() {
 }
 
 export function mapMercadoPagoStatus(mpStatus?: string): {
-  pedidoStatus: "pendente" | "em_preparo" | "cancelado";
+  pedidoStatus: "pendente" | "pagamento_confirmado" | "cancelado";
   pagamentoStatus: StatusPagamento;
 } {
   switch (mpStatus) {
     case "approved":
-      return { pedidoStatus: "em_preparo", pagamentoStatus: "aprovado" };
+      return { pedidoStatus: "pagamento_confirmado", pagamentoStatus: "aprovado" };
     case "rejected":
     case "cancelled":
     case "refunded":
@@ -107,6 +107,7 @@ export function mapMercadoPagoStatus(mpStatus?: string): {
       return { pedidoStatus: "pendente", pagamentoStatus: "aguardando" };
   }
 }
+
 
 async function buscarAreaEntrega(supa: SupabaseAdmin, cep: string) {
   const { data: areas, error } = await supa
