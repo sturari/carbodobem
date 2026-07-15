@@ -69,6 +69,7 @@ function loadMercadoPagoSdk(): Promise<void> {
       existing.addEventListener("load", () => resolve());
       existing.addEventListener("error", () => reject(new Error("MP SDK load error")));
       return;
+    }
     const s = document.createElement("script");
     s.src = "https://sdk.mercadopago.com/js/v2";
     s.async = true;
