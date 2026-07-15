@@ -181,7 +181,13 @@ function CheckoutPage() {
     proximo();
   }
 
+  const submissaoRef = React.useRef(false);
+
   async function finalizarPagamento() {
+    // Guarda síncrona contra cliques duplicados (mais rápida que o setState).
+    if (submissaoRef.current || carregando || checkoutUrl) return;
+    submissaoRef.current = true;
+
     setErro(null);
     setCarregando(true);
     setCheckoutUrl(null);
@@ -222,6 +228,8 @@ function CheckoutPage() {
       }
     } catch (e: unknown) {
       setErro(e instanceof Error ? e.message : "Erro ao processar pedido.");
+      // Libera nova tentativa em caso de falha real.
+      submissaoRef.current = false;
     } finally {
       setCarregando(false);
     }
@@ -411,11 +419,16 @@ function CheckoutPage() {
               {etapa === 5 ? (
                 <button
                   onClick={finalizarPagamento}
-                  disabled={carregando}
-                  className="inline-flex items-center gap-2 rounded-full bg-warm px-6 py-2.5 font-bold text-white shadow-lg disabled:opacity-60"
+                  disabled={carregando || !!checkoutUrl}
+                  aria-busy={carregando}
+                  className="inline-flex items-center gap-2 rounded-full bg-warm px-6 py-2.5 font-bold text-white shadow-lg disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {carregando && <Loader2 className="h-4 w-4 animate-spin" />}
-                  Pagar {formatBRL(totalComFrete)}
+                  {checkoutUrl
+                    ? "Pagamento gerado"
+                    : carregando
+                      ? "Processando..."
+                      : `Pagar ${formatBRL(totalComFrete)}`}
                 </button>
               ) : (
                 <button
