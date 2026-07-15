@@ -266,6 +266,35 @@ function FluxoPix({
     }
   }
 
+  async function verificarAgora() {
+    if (!pix || verificando) return;
+    setVerificando(true);
+    try {
+      const r = await fnConsultar({
+        data: { pedido_id: pix.pedido_id, payment_id: pix.payment_id },
+      });
+      setStatus(r.status);
+    } catch {
+      /* silencioso */
+    } finally {
+      setVerificando(false);
+    }
+  }
+
+  // Countdown
+  const expiraEm = pix?.expires_at ? new Date(pix.expires_at).getTime() : null;
+  const restanteMs = expiraEm ? expiraEm - agora : null;
+  const expirado = restanteMs !== null && restanteMs <= 0;
+  const restanteLabel = (() => {
+    if (restanteMs === null || restanteMs <= 0) return null;
+    const totalSeg = Math.floor(restanteMs / 1000);
+    const h = Math.floor(totalSeg / 3600);
+    const m = Math.floor((totalSeg % 3600) / 60);
+    const s = totalSeg % 60;
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return h > 0 ? `${h}h ${pad(m)}min` : `${pad(m)}:${pad(s)}`;
+  })();
+
   if (carregando && !pix) {
     return (
       <div className="rounded-xl border border-border/70 bg-muted/20 p-6 text-center text-sm">
