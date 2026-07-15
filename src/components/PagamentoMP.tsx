@@ -10,6 +10,11 @@ import {
   obterMercadoPagoPublicKey,
 } from "@/lib/mercadopago.functions";
 import { formatBRL } from "@/lib/format";
+import {
+  calcularOpcoesParcelas,
+  MIN_PARCELAMENTO_BRL,
+  totalComJuros,
+} from "@/lib/parcelamento";
 
 type DadosPedido = {
   cliente: { nome: string; telefone: string; email: string; cpf: string };
