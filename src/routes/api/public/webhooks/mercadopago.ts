@@ -65,12 +65,13 @@ function mapStatus(mpStatus: string): "pendente" | "em_preparo" | "cancelado" {
 }
 
 export const Route = createFileRoute("/api/public/webhooks/mercadopago")({
+  // @ts-expect-error - `server` handled by TanStack Start plugin at build time
   server: {
     handlers: {
       OPTIONS: async () =>
         new Response(null, { status: 204, headers: corsHeaders }),
 
-      POST: async ({ request }) => {
+      POST: async ({ request }: { request: Request }) => {
         const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET;
         const accessToken =
           process.env.MERCADOPAGO_ACCESS_TOKEN_PROD ||

@@ -107,6 +107,37 @@ export const criarPedido = createServerFn({ method: "POST" })
       .insert(itensCalc.map((i) => ({ ...i, pedido_id: pedidoRow.id })));
     if (itErr) throw new Error(itErr.message);
 
+    // 7) envia email de confirmação (não bloqueia o pedido em caso de falha)
+    try {
+      const { sendTemplateEmail } = await import(
+        "@/lib/email-templates/send-email"
+      );
+      const itensEmail = itensCalc.map((i) => {
+        const p = produtos.find((x) => x.id === i.produto_id)!;
+        return {
+          nome: p.nome,
+          quantidade: i.quantidade,
+          preco_unitario: i.preco_unitario,
+        };
+      });
+      await sendTemplateEmail("pedido-confirmado", data.cliente.email, {
+        idempotencyKey: `pedido-confirmado-${pedidoRow.id}`,
+        templateData: {
+          nome_cliente: data.cliente.nome,
+          pedido_id: pedidoRow.id,
+          itens: itensEmail,
+          subtotal,
+          taxa_entrega: taxa,
+          valor_total,
+          horario_entrega: data.horario_entrega,
+          endereco: data.endereco,
+          observacoes: data.observacoes,
+        },
+      });
+    } catch (e) {
+      console.error("[pedido] falha ao enviar email de confirmação", e);
+    }
+
     return {
       pedido_id: pedidoRow.id,
       subtotal,
