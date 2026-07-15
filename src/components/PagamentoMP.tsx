@@ -36,11 +36,17 @@ type Props = {
 type Metodo = "pix" | "cartao" | "redirect";
 
 // SDK v2 do Mercado Pago injetado via <script>
+type MpPaymentMethod = {
+  id: string;
+  name?: string;
+  payment_type_id: string;
+  thumbnail?: string;
+  secure_thumbnail?: string;
+  issuer?: { id: string };
+};
 type MpInstance = {
   createCardToken: (data: Record<string, string>) => Promise<{ id: string }>;
-  getPaymentMethods: (data: { bin: string }) => Promise<{
-    results: Array<{ id: string; payment_type_id: string; issuer?: { id: string } }>;
-  }>;
+  getPaymentMethods: (data: { bin: string }) => Promise<{ results: MpPaymentMethod[] }>;
 };
 type MpConstructor = new (publicKey: string, opts?: { locale?: string }) => MpInstance;
 declare global {
@@ -185,9 +191,12 @@ function FluxoPix({
     payment_id: string;
     qr_code: string;
     qr_code_base64: string | null;
+    expires_at: string | null;
   } | null>(null);
   const [status, setStatus] = useState<string>("aguardando");
   const [copiado, setCopiado] = useState(false);
+  const [agora, setAgora] = useState(() => Date.now());
+  const [verificando, setVerificando] = useState(false);
   const submissaoRef = useRef(false);
 
   useEffect(() => {
@@ -203,6 +212,7 @@ function FluxoPix({
           payment_id: r.payment_id,
           qr_code: r.qr_code,
           qr_code_base64: r.qr_code_base64,
+          expires_at: r.expires_at,
         });
         setStatus(r.status);
         onCriado?.();
@@ -215,6 +225,13 @@ function FluxoPix({
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Tick a cada 1s para o countdown
+  useEffect(() => {
+    if (!pix?.expires_at || status === "aprovado" || status === "recusado") return;
+    const id = setInterval(() => setAgora(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [pix?.expires_at, status]);
 
   // Polling do status enquanto não aprovado / recusado
   useEffect(() => {
@@ -248,6 +265,35 @@ function FluxoPix({
       /* ignore */
     }
   }
+
+  async function verificarAgora() {
+    if (!pix || verificando) return;
+    setVerificando(true);
+    try {
+      const r = await fnConsultar({
+        data: { pedido_id: pix.pedido_id, payment_id: pix.payment_id },
+      });
+      setStatus(r.status);
+    } catch {
+      /* silencioso */
+    } finally {
+      setVerificando(false);
+    }
+  }
+
+  // Countdown
+  const expiraEm = pix?.expires_at ? new Date(pix.expires_at).getTime() : null;
+  const restanteMs = expiraEm ? expiraEm - agora : null;
+  const expirado = restanteMs !== null && restanteMs <= 0;
+  const restanteLabel = (() => {
+    if (restanteMs === null || restanteMs <= 0) return null;
+    const totalSeg = Math.floor(restanteMs / 1000);
+    const h = Math.floor(totalSeg / 3600);
+    const m = Math.floor((totalSeg % 3600) / 60);
+    const s = totalSeg % 60;
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return h > 0 ? `${h}h ${pad(m)}min` : `${pad(m)}:${pad(s)}`;
+  })();
 
   if (carregando && !pix) {
     return (
@@ -313,18 +359,35 @@ function FluxoPix({
         className={`rounded-lg px-3 py-2 text-sm ${
           status === "aprovado"
             ? "bg-primary/10 text-primary"
-            : status === "recusado"
+            : status === "recusado" || expirado
               ? "bg-destructive/10 text-destructive"
               : "bg-muted/60 text-muted-foreground"
         }`}
       >
         {status === "aprovado" && "✔ Pagamento confirmado! Redirecionando…"}
         {status === "recusado" && "Pagamento recusado. Escolha outro método."}
-        {status !== "aprovado" && status !== "recusado" && (
-          <span className="inline-flex items-center gap-2">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            Aguardando pagamento…
-          </span>
+        {status !== "aprovado" && status !== "recusado" && expirado && (
+          <span>Este Pix expirou. Volte e escolha outro método.</span>
+        )}
+        {status !== "aprovado" && status !== "recusado" && !expirado && (
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="inline-flex items-center gap-2">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Aguardando pagamento…
+              {restanteLabel && (
+                <span className="text-xs opacity-80">expira em {restanteLabel}</span>
+              )}
+            </span>
+            <button
+              type="button"
+              onClick={verificarAgora}
+              disabled={verificando}
+              className="inline-flex items-center gap-1.5 rounded-full border border-border bg-background px-3 py-1 text-xs font-semibold text-foreground hover:bg-muted disabled:opacity-60"
+            >
+              {verificando && <Loader2 className="h-3 w-3 animate-spin" />}
+              {verificando ? "Verificando…" : "Já paguei"}
+            </button>
+          </div>
         )}
       </div>
 
@@ -365,6 +428,31 @@ function FluxoCartao({
 
   const [processando, setProcessando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const [bandeira, setBandeira] = useState<MpPaymentMethod | null>(null);
+
+  // Detecta bandeira em tempo real via BIN (a partir de 6 dígitos)
+  useEffect(() => {
+    if (!mp) return;
+    const digits = numero.replace(/\D/g, "");
+    if (digits.length < 6) {
+      setBandeira(null);
+      return;
+    }
+    const bin = digits.slice(0, 8);
+    let cancelado = false;
+    const t = setTimeout(async () => {
+      try {
+        const pm = await mp.getPaymentMethods({ bin });
+        if (!cancelado) setBandeira(pm.results[0] ?? null);
+      } catch {
+        if (!cancelado) setBandeira(null);
+      }
+    }, 250);
+    return () => {
+      cancelado = true;
+      clearTimeout(t);
+    };
+  }, [numero, mp]);
 
   useEffect(() => {
     (async () => {
@@ -403,11 +491,13 @@ function FluxoCartao({
     }
     setProcessando(true);
     try {
-      // 1) Descobre payment_method_id pelo BIN
-      const bin = numeroLimpo.slice(0, 8);
-      const pm = await mp.getPaymentMethods({ bin });
-      const first = pm.results[0];
-      if (!first) throw new Error("Bandeira do cartão não reconhecida.");
+      // 1) Usa a bandeira já detectada, ou consulta na hora se ainda não veio
+      let pm = bandeira;
+      if (!pm) {
+        const r = await mp.getPaymentMethods({ bin: numeroLimpo.slice(0, 8) });
+        pm = r.results[0] ?? null;
+      }
+      if (!pm) throw new Error("Bandeira do cartão não reconhecida.");
 
       // 2) Tokeniza o cartão localmente
       const { id: token } = await mp.createCardToken({
@@ -426,9 +516,9 @@ function FluxoCartao({
           ...dados,
           cartao: {
             token,
-            payment_method_id: first.id,
+            payment_method_id: pm.id,
             installments: parcelas,
-            issuer_id: first.issuer?.id ?? null,
+            issuer_id: pm.issuer?.id ?? null,
           },
         },
       });
@@ -479,14 +569,24 @@ function FluxoCartao({
         <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Número do cartão
         </span>
-        <input
-          className="input"
-          inputMode="numeric"
-          autoComplete="cc-number"
-          placeholder="0000 0000 0000 0000"
-          value={numero}
-          onChange={(e) => setNumero(formatarNumero(e.target.value))}
-        />
+        <div className="relative">
+          <input
+            className="input pr-14"
+            inputMode="numeric"
+            autoComplete="cc-number"
+            placeholder="0000 0000 0000 0000"
+            value={numero}
+            onChange={(e) => setNumero(formatarNumero(e.target.value))}
+          />
+          {bandeira?.secure_thumbnail || bandeira?.thumbnail ? (
+            <img
+              src={bandeira.secure_thumbnail || bandeira.thumbnail}
+              alt={bandeira.name || bandeira.id}
+              title={bandeira.name || bandeira.id}
+              className="absolute right-3 top-1/2 h-6 w-9 -translate-y-1/2 object-contain"
+            />
+          ) : null}
+        </div>
       </label>
 
       <label className="block">
