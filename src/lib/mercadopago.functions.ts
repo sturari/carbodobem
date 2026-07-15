@@ -131,8 +131,9 @@ export const criarPreferenciaMP = createServerFn({ method: "POST" })
   });
 
 export const iniciarCheckoutMercadoPago = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((raw) => checkoutSchema.parse(raw))
-  .handler(async ({ data }) => {
+  .handler(async ({ data, context }) => {
     const { getRequestHeader } = await import("@tanstack/react-start/server");
     const { criarCheckoutMercadoPago } = await import("@/lib/mercadopago.server");
     const forwardedProto = getRequestHeader("x-forwarded-proto") || "https";
@@ -141,9 +142,11 @@ export const iniciarCheckoutMercadoPago = createServerFn({ method: "POST" })
 
     return criarCheckoutMercadoPago({
       ...data,
+      user_id: context.userId,
       origin: data.origin ?? requestOrigin,
     });
   });
+
 
 export const confirmarPagamentoMercadoPago = createServerFn({ method: "POST" })
   .inputValidator((raw) => statusSchema.parse(raw))
