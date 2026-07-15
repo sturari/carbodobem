@@ -10,6 +10,11 @@ import {
   obterMercadoPagoPublicKey,
 } from "@/lib/mercadopago.functions";
 import { formatBRL } from "@/lib/format";
+import {
+  calcularOpcoesParcelas,
+  MIN_PARCELAMENTO_BRL,
+  totalComJuros,
+} from "@/lib/parcelamento";
 
 type DadosPedido = {
   cliente: { nome: string; telefone: string; email: string; cpf: string };
@@ -74,6 +79,25 @@ function loadMercadoPagoSdk(): Promise<void> {
     document.head.appendChild(s);
   });
 }
+
+/** Valida um número de cartão pelo algoritmo de Luhn (mod 10). */
+function luhnValido(numero: string): boolean {
+  const d = numero.replace(/\D/g, "");
+  if (d.length < 13 || d.length > 19) return false;
+  let soma = 0;
+  let alt = false;
+  for (let i = d.length - 1; i >= 0; i--) {
+    let n = Number(d.charAt(i));
+    if (alt) {
+      n *= 2;
+      if (n > 9) n -= 9;
+    }
+    soma += n;
+    alt = !alt;
+  }
+  return soma % 10 === 0;
+}
+
 
 export function PagamentoMP({ dados, valorTotal, onCriado }: Props) {
   const navigate = useNavigate();
@@ -430,6 +454,14 @@ function FluxoCartao({
   const [erro, setErro] = useState<string | null>(null);
   const [bandeira, setBandeira] = useState<MpPaymentMethod | null>(null);
 
+  const opcoesParcelas = calcularOpcoesParcelas(valorTotal);
+  // Se o valor mudar e a parcela escolhida não estiver mais disponível, volta pra 1x.
+  useEffect(() => {
+    if (!opcoesParcelas.some((op) => op.n === parcelas)) setParcelas(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [valorTotal]);
+  const valorCobrado = totalComJuros(valorTotal, parcelas);
+
   // Detecta bandeira em tempo real via BIN (a partir de 6 dígitos)
   useEffect(() => {
     if (!mp) return;
@@ -485,10 +517,41 @@ function FluxoCartao({
     setErro(null);
     const numeroLimpo = numero.replace(/\s/g, "");
     const [mm, aa] = validade.split("/");
-    if (numeroLimpo.length < 13 || !nome || !mm || !aa || cvv.length < 3) {
-      setErro("Preencha todos os dados do cartão.");
+
+    // Validações client-side para reduzir erros antes de enviar
+    if (numeroLimpo.length < 13 || numeroLimpo.length > 19) {
+      setErro("Número do cartão inválido.");
       return;
     }
+    if (!luhnValido(numeroLimpo)) {
+      setErro("Número do cartão inválido — confira os dígitos.");
+      return;
+    }
+    if (!nome.trim() || nome.trim().length < 2) {
+      setErro("Informe o nome como está impresso no cartão.");
+      return;
+    }
+    if (!mm || !aa || mm.length !== 2 || (aa.length !== 2 && aa.length !== 4)) {
+      setErro("Validade inválida. Use o formato MM/AA.");
+      return;
+    }
+    const mesNum = Number(mm);
+    const anoNum = aa.length === 2 ? 2000 + Number(aa) : Number(aa);
+    if (!Number.isFinite(mesNum) || mesNum < 1 || mesNum > 12) {
+      setErro("Mês da validade inválido.");
+      return;
+    }
+    const hoje = new Date();
+    const fimDoMes = new Date(anoNum, mesNum, 0, 23, 59, 59);
+    if (fimDoMes.getTime() < hoje.getTime()) {
+      setErro("Cartão vencido. Use outro cartão.");
+      return;
+    }
+    if (cvv.length < 3 || cvv.length > 4) {
+      setErro("CVV deve ter 3 ou 4 dígitos.");
+      return;
+    }
+
     setProcessando(true);
     try {
       // 1) Usa a bandeira já detectada, ou consulta na hora se ainda não veio
@@ -641,13 +704,22 @@ function FluxoCartao({
           value={parcelas}
           onChange={(e) => setParcelas(Number(e.target.value))}
         >
-          {[1, 2, 3, 4, 5, 6].map((n) => (
-            <option key={n} value={n}>
-              {n}x de {formatBRL(valorTotal / n)} {n === 1 ? "à vista" : "sem juros"}
+          {opcoesParcelas.map((op) => (
+            <option key={op.n} value={op.n}>
+              {op.n}x de {formatBRL(op.valorParcela)}
+              {op.temJuros
+                ? ` (total ${formatBRL(op.total)} c/ juros)`
+                : " sem juros"}
             </option>
           ))}
         </select>
+        {opcoesParcelas.length === 1 && (
+          <p className="mt-1 text-xs text-muted-foreground">
+            Parcelamento disponível apenas para pedidos acima de {formatBRL(MIN_PARCELAMENTO_BRL)}.
+          </p>
+        )}
       </label>
+
 
       {erro && (
         <div className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
@@ -671,7 +743,7 @@ function FluxoCartao({
           className="inline-flex items-center gap-2 rounded-full bg-warm px-6 py-2.5 font-bold text-white shadow-lg disabled:opacity-60"
         >
           {processando && <Loader2 className="h-4 w-4 animate-spin" />}
-          {processando ? "Processando…" : `Pagar ${formatBRL(valorTotal)}`}
+          {processando ? "Processando…" : `Pagar ${formatBRL(valorCobrado)}`}
         </button>
       </div>
     </div>
