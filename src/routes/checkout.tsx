@@ -150,15 +150,12 @@ function CheckoutPage() {
   async function acaoEtapa1() {
     setErro(null);
     if (!cliente.nome || cliente.telefone.length < 14 || !/\S+@\S+/.test(cliente.email)) {
-      setErro("Preencha nome, telefone válido e e-mail.");
-      return;
-    }
-    if (cliente.email.trim().toLowerCase() !== emailConfirm.trim().toLowerCase()) {
-      setErro("Os e-mails não coincidem. Confira a confirmação.");
+      setErro("Preencha nome, telefone válido e confirme seu e-mail.");
       return;
     }
     proximo();
   }
+
 
   async function acaoEtapa2() {
     setErro(null);
