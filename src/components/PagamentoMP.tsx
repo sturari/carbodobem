@@ -743,7 +743,7 @@ function FluxoCartao({
           className="inline-flex items-center gap-2 rounded-full bg-warm px-6 py-2.5 font-bold text-white shadow-lg disabled:opacity-60"
         >
           {processando && <Loader2 className="h-4 w-4 animate-spin" />}
-          {processando ? "Processando…" : `Pagar ${formatBRL(valorTotal)}`}
+          {processando ? "Processando…" : `Pagar ${formatBRL(valorCobrado)}`}
         </button>
       </div>
     </div>
