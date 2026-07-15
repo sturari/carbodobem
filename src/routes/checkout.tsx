@@ -254,17 +254,16 @@ function CheckoutPage() {
             )}
 
             {etapa === 4 && (
-              <div className="space-y-4">
-                <h2 className="font-display text-lg font-bold">Quando entregar?</h2>
-                <Campo label="Data e horário de entrega">
-                  <input
-                    className="input"
-                    type="datetime-local"
-                    min={new Date(Date.now() + 24 * 3600 * 1000).toISOString().slice(0, 16)}
-                    value={horario}
-                    onChange={(e) => setHorario(e.target.value)}
-                  />
-                </Campo>
+              <div className="space-y-5">
+                <div>
+                  <h2 className="font-display text-lg font-bold">Quando entregar?</h2>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Escolha o dia e o horário que preferir.
+                  </p>
+                </div>
+
+                <SeletorHorario value={horario} onChange={setHorario} />
+
                 <Campo label="Observações (opcional)">
                   <textarea
                     className="input min-h-24"
@@ -275,6 +274,7 @@ function CheckoutPage() {
                 </Campo>
               </div>
             )}
+
 
             {etapa === 5 && (
               <div className="space-y-4">
