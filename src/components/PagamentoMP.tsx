@@ -491,11 +491,13 @@ function FluxoCartao({
     }
     setProcessando(true);
     try {
-      // 1) Descobre payment_method_id pelo BIN
-      const bin = numeroLimpo.slice(0, 8);
-      const pm = await mp.getPaymentMethods({ bin });
-      const first = pm.results[0];
-      if (!first) throw new Error("Bandeira do cartão não reconhecida.");
+      // 1) Usa a bandeira já detectada, ou consulta na hora se ainda não veio
+      let pm = bandeira;
+      if (!pm) {
+        const r = await mp.getPaymentMethods({ bin: numeroLimpo.slice(0, 8) });
+        pm = r.results[0] ?? null;
+      }
+      if (!pm) throw new Error("Bandeira do cartão não reconhecida.");
 
       // 2) Tokeniza o cartão localmente
       const { id: token } = await mp.createCardToken({
@@ -514,9 +516,9 @@ function FluxoCartao({
           ...dados,
           cartao: {
             token,
-            payment_method_id: first.id,
+            payment_method_id: pm.id,
             installments: parcelas,
-            issuer_id: first.issuer?.id ?? null,
+            issuer_id: pm.issuer?.id ?? null,
           },
         },
       });
