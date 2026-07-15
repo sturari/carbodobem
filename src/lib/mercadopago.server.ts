@@ -242,6 +242,12 @@ export async function criarCheckoutMercadoPago(data: CriarCheckoutInput) {
     auto_return: "approved",
     notification_url: `${publicUrl}/api/public/webhooks/mercadopago`,
     statement_descriptor: "CARBO DO BEM",
+    payment_methods: {
+      // Não excluímos nenhum método — Pix, cartão de crédito/débito e boleto ficam disponíveis.
+      excluded_payment_methods: [],
+      excluded_payment_types: [],
+      installments: 6,
+    },
   };
 
   const preferenceRes = await fetch("https://api.mercadopago.com/checkout/preferences", {
