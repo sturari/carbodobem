@@ -454,6 +454,14 @@ function FluxoCartao({
   const [erro, setErro] = useState<string | null>(null);
   const [bandeira, setBandeira] = useState<MpPaymentMethod | null>(null);
 
+  const opcoesParcelas = calcularOpcoesParcelas(valorTotal);
+  // Se o valor mudar e a parcela escolhida não estiver mais disponível, volta pra 1x.
+  useEffect(() => {
+    if (!opcoesParcelas.some((op) => op.n === parcelas)) setParcelas(1);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [valorTotal]);
+  const valorCobrado = totalComJuros(valorTotal, parcelas);
+
   // Detecta bandeira em tempo real via BIN (a partir de 6 dígitos)
   useEffect(() => {
     if (!mp) return;
