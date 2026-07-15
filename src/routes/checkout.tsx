@@ -106,7 +106,9 @@ function CheckoutPage() {
       nome: "Teste Lovable",
       telefone: "(61) 99999-9999",
       email: "felipe.sturari@gmail.com",
+      cpf: "39053344705",
     });
+    setCpfInput("390.533.447-05");
     setEmailConfirm("felipe.sturari@gmail.com");
     setCepInput("71503-505");
     setTaxaEntrega(15);
