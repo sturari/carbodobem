@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PrivacidadeRouteImport } from './routes/privacidade'
 import { Route as MeusPedidosRouteImport } from './routes/meus-pedidos'
 import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as AuthRouteImport } from './routes/auth'
@@ -18,6 +19,11 @@ import { Route as CheckoutSucessoRouteImport } from './routes/checkout.sucesso'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as ApiPublicWebhooksMercadopagoRouteImport } from './routes/api/public/webhooks/mercadopago'
 
+const PrivacidadeRoute = PrivacidadeRouteImport.update({
+  id: '/privacidade',
+  path: '/privacidade',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MeusPedidosRoute = MeusPedidosRouteImport.update({
   id: '/meus-pedidos',
   path: '/meus-pedidos',
@@ -67,6 +73,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/checkout': typeof CheckoutRouteWithChildren
   '/meus-pedidos': typeof MeusPedidosRoute
+  '/privacidade': typeof PrivacidadeRoute
   '/checkout/sucesso': typeof CheckoutSucessoRoute
   '/api/public/webhooks/mercadopago': typeof ApiPublicWebhooksMercadopagoRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -77,6 +84,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/checkout': typeof CheckoutRouteWithChildren
   '/meus-pedidos': typeof MeusPedidosRoute
+  '/privacidade': typeof PrivacidadeRoute
   '/checkout/sucesso': typeof CheckoutSucessoRoute
   '/api/public/webhooks/mercadopago': typeof ApiPublicWebhooksMercadopagoRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -88,6 +96,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/checkout': typeof CheckoutRouteWithChildren
   '/meus-pedidos': typeof MeusPedidosRoute
+  '/privacidade': typeof PrivacidadeRoute
   '/checkout/sucesso': typeof CheckoutSucessoRoute
   '/api/public/webhooks/mercadopago': typeof ApiPublicWebhooksMercadopagoRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -100,6 +109,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/checkout'
     | '/meus-pedidos'
+    | '/privacidade'
     | '/checkout/sucesso'
     | '/api/public/webhooks/mercadopago'
     | '/lovable/email/transactional/preview'
@@ -110,6 +120,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/checkout'
     | '/meus-pedidos'
+    | '/privacidade'
     | '/checkout/sucesso'
     | '/api/public/webhooks/mercadopago'
     | '/lovable/email/transactional/preview'
@@ -120,6 +131,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/checkout'
     | '/meus-pedidos'
+    | '/privacidade'
     | '/checkout/sucesso'
     | '/api/public/webhooks/mercadopago'
     | '/lovable/email/transactional/preview'
@@ -131,12 +143,20 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   CheckoutRoute: typeof CheckoutRouteWithChildren
   MeusPedidosRoute: typeof MeusPedidosRoute
+  PrivacidadeRoute: typeof PrivacidadeRoute
   ApiPublicWebhooksMercadopagoRoute: typeof ApiPublicWebhooksMercadopagoRoute
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/privacidade': {
+      id: '/privacidade'
+      path: '/privacidade'
+      fullPath: '/privacidade'
+      preLoaderRoute: typeof PrivacidadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/meus-pedidos': {
       id: '/meus-pedidos'
       path: '/meus-pedidos'
@@ -214,6 +234,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   CheckoutRoute: CheckoutRouteWithChildren,
   MeusPedidosRoute: MeusPedidosRoute,
+  PrivacidadeRoute: PrivacidadeRoute,
   ApiPublicWebhooksMercadopagoRoute: ApiPublicWebhooksMercadopagoRoute,
   LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
 }
