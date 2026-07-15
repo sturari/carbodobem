@@ -490,10 +490,41 @@ function FluxoCartao({
     setErro(null);
     const numeroLimpo = numero.replace(/\s/g, "");
     const [mm, aa] = validade.split("/");
-    if (numeroLimpo.length < 13 || !nome || !mm || !aa || cvv.length < 3) {
-      setErro("Preencha todos os dados do cartão.");
+
+    // Validações client-side para reduzir erros antes de enviar
+    if (numeroLimpo.length < 13 || numeroLimpo.length > 19) {
+      setErro("Número do cartão inválido.");
       return;
     }
+    if (!luhnValido(numeroLimpo)) {
+      setErro("Número do cartão inválido — confira os dígitos.");
+      return;
+    }
+    if (!nome.trim() || nome.trim().length < 2) {
+      setErro("Informe o nome como está impresso no cartão.");
+      return;
+    }
+    if (!mm || !aa || mm.length !== 2 || (aa.length !== 2 && aa.length !== 4)) {
+      setErro("Validade inválida. Use o formato MM/AA.");
+      return;
+    }
+    const mesNum = Number(mm);
+    const anoNum = aa.length === 2 ? 2000 + Number(aa) : Number(aa);
+    if (!Number.isFinite(mesNum) || mesNum < 1 || mesNum > 12) {
+      setErro("Mês da validade inválido.");
+      return;
+    }
+    const hoje = new Date();
+    const fimDoMes = new Date(anoNum, mesNum, 0, 23, 59, 59);
+    if (fimDoMes.getTime() < hoje.getTime()) {
+      setErro("Cartão vencido. Use outro cartão.");
+      return;
+    }
+    if (cvv.length < 3 || cvv.length > 4) {
+      setErro("CVV deve ter 3 ou 4 dígitos.");
+      return;
+    }
+
     setProcessando(true);
     try {
       // 1) Usa a bandeira já detectada, ou consulta na hora se ainda não veio
