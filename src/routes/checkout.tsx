@@ -207,71 +207,10 @@ function CheckoutPage() {
     proximo();
   }
 
-  async function finalizarPagamento() {
-    // Guarda síncrona contra cliques duplicados (mais rápida que o setState).
-    if (submissaoRef.current || carregando || checkoutUrl) return;
-    submissaoRef.current = true;
+  // O antigo finalizarPagamento (redirect direto para o Checkout Pro) foi
+  // substituído pelo componente <PagamentoMP>, que expõe Pix nativo, cartão
+  // e o fluxo redirect como opções para o cliente.
 
-    setErro(null);
-    setCarregando(true);
-    setCheckoutUrl(null);
-
-    try {
-      if (itensCheckout.length === 0) {
-        setErro("Seu carrinho está vazio. Adicione um produto antes de pagar.");
-        return;
-      }
-
-      const checkout = await fnIniciarCheckout({
-        data: {
-          cliente,
-          endereco: {
-            ...endereco,
-            complemento: endereco.complemento || null,
-          },
-          horario_entrega: new Date(horario).toISOString(),
-          itens: itensCheckout.map((i) => ({ produto_id: i.id, quantidade: i.quantidade })),
-          observacoes: obs || null,
-          origin: window.location.origin,
-        },
-      });
-
-      limpar();
-      setCheckoutUrl(checkout.checkout_url);
-
-      // Redireciona automaticamente para o Mercado Pago. Se estiver dentro de
-      // um iframe (preview do Lovable), tenta navegar a janela do topo; se o
-      // navegador bloquear, cai para uma nova aba. Em produção (mesma origem),
-      // usa window.location.assign direto.
-      try {
-        const url = checkout.checkout_url;
-        if (window.top && window.top !== window.self) {
-          try {
-            window.top.location.href = url;
-          } catch {
-            const aba = window.open(url, "_blank", "noopener,noreferrer");
-            if (!aba) {
-              setErro(
-                "Não conseguimos abrir o Mercado Pago automaticamente. Use o botão abaixo.",
-              );
-            }
-          }
-        } else {
-          window.location.assign(url);
-        }
-      } catch {
-        setErro(
-          "Não conseguimos abrir o Mercado Pago automaticamente. Use o botão abaixo.",
-        );
-      }
-    } catch (e: unknown) {
-      setErro(e instanceof Error ? e.message : "Erro ao processar pedido.");
-      // Libera nova tentativa em caso de falha real.
-      submissaoRef.current = false;
-    } finally {
-      setCarregando(false);
-    }
-  }
 
   const totalComFrete = total + (taxaEntrega ?? 0);
 
