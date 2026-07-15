@@ -306,32 +306,20 @@ function CheckoutPage() {
                     onChange={(e) => setCliente({ ...cliente, telefone: formatTelefone(e.target.value) })}
                   />
                 </Campo>
-                <Campo label="E-mail">
+                <Campo label="E-mail (da sua conta)">
                   <input
-                    className="input"
+                    className="input opacity-70"
                     type="email"
                     autoComplete="email"
                     value={cliente.email}
-                    onChange={(e) => setCliente({ ...cliente, email: e.target.value })}
+                    readOnly
+                    disabled
                   />
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    Este é o e-mail da sua conta. Ele será usado para o recibo e para acompanhar o pedido.
+                  </span>
                 </Campo>
-                <Campo label="Confirme o e-mail">
-                  <input
-                    className="input"
-                    type="email"
-                    autoComplete="off"
-                    onPaste={(e) => e.preventDefault()}
-                    value={emailConfirm}
-                    onChange={(e) => setEmailConfirm(e.target.value)}
-                  />
-                  {emailConfirm.length > 0 &&
-                    emailConfirm.trim().toLowerCase() !==
-                      cliente.email.trim().toLowerCase() && (
-                      <span className="mt-1 block text-xs text-destructive">
-                        Os e-mails não coincidem.
-                      </span>
-                    )}
-                </Campo>
+
               </div>
             )}
 
