@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { CheckCircle2, Clock, Loader2, RefreshCw, XCircle } from "lucide-react";
 import React from "react";
-import { z } from "zod";
+
 import { confirmarPagamentoMercadoPago } from "@/lib/mercadopago.functions";
 
 export const Route = createFileRoute("/checkout/sucesso")({
