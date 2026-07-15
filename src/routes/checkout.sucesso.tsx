@@ -2,17 +2,26 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { CheckCircle2, Clock, Loader2, RefreshCw, XCircle } from "lucide-react";
 import React from "react";
-import { z } from "zod";
+
 import { confirmarPagamentoMercadoPago } from "@/lib/mercadopago.functions";
 
 export const Route = createFileRoute("/checkout/sucesso")({
-  validateSearch: z.object({
-    pedido: z.string().optional(),
-    status: z.string().optional(),
-    payment_id: z.string().optional(),
-    collection_id: z.string().optional(),
-    collection_status: z.string().optional(),
-  }),
+  validateSearch: (search: Record<string, unknown>) => {
+    const pick = (v: unknown): string | undefined => {
+      let val: unknown = v;
+      if (Array.isArray(val)) val = val.find((x) => x != null && x !== "null" && x !== "");
+      if (val == null) return undefined;
+      const s = String(val);
+      return s === "null" || s === "" ? undefined : s;
+    };
+    return {
+      pedido: pick(search.pedido) ?? pick(search.external_reference),
+      status: pick(search.status) ?? pick(search.collection_status),
+      payment_id: pick(search.payment_id),
+      collection_id: pick(search.collection_id),
+      collection_status: pick(search.collection_status),
+    };
+  },
   component: Sucesso,
 });
 
