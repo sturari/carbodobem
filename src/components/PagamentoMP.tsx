@@ -69,7 +69,24 @@ function loadMercadoPagoSdk(): Promise<void> {
       existing.addEventListener("load", () => resolve());
       existing.addEventListener("error", () => reject(new Error("MP SDK load error")));
       return;
+}
+
+/** Valida um número de cartão pelo algoritmo de Luhn (mod 10). */
+function luhnValido(numero: string): boolean {
+  const d = numero.replace(/\D/g, "");
+  if (d.length < 13 || d.length > 19) return false;
+  let soma = 0;
+  let alt = false;
+  for (let i = d.length - 1; i >= 0; i--) {
+    let n = Number(d.charAt(i));
+    if (alt) {
+      n *= 2;
+      if (n > 9) n -= 9;
     }
+    soma += n;
+    alt = !alt;
+  }
+  return soma % 10 === 0;
     const s = document.createElement("script");
     s.src = "https://sdk.mercadopago.com/js/v2";
     s.async = true;
