@@ -677,13 +677,22 @@ function FluxoCartao({
           value={parcelas}
           onChange={(e) => setParcelas(Number(e.target.value))}
         >
-          {[1, 2, 3, 4, 5, 6].map((n) => (
-            <option key={n} value={n}>
-              {n}x de {formatBRL(valorTotal / n)} {n === 1 ? "à vista" : "sem juros"}
+          {opcoesParcelas.map((op) => (
+            <option key={op.n} value={op.n}>
+              {op.n}x de {formatBRL(op.valorParcela)}
+              {op.temJuros
+                ? ` (total ${formatBRL(op.total)} c/ juros)`
+                : " sem juros"}
             </option>
           ))}
         </select>
+        {opcoesParcelas.length === 1 && (
+          <p className="mt-1 text-xs text-muted-foreground">
+            Parcelamento disponível apenas para pedidos acima de {formatBRL(MIN_PARCELAMENTO_BRL)}.
+          </p>
+        )}
       </label>
+
 
       {erro && (
         <div className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">
