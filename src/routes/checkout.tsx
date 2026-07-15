@@ -324,6 +324,18 @@ function CheckoutPage() {
                     Este é o e-mail da sua conta. Ele será usado para o recibo e para acompanhar o pedido.
                   </span>
                 </Campo>
+                <Campo label="CPF">
+                  <input
+                    className="input"
+                    inputMode="numeric"
+                    placeholder="000.000.000-00"
+                    value={cpfInput}
+                    onChange={(e) => setCpfInput(formatCPF(e.target.value))}
+                  />
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    Necessário para gerar o Pix e emitir o recibo do Mercado Pago.
+                  </span>
+                </Campo>
 
               </div>
             )}
