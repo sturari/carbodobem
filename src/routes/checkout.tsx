@@ -24,6 +24,7 @@ function CheckoutPage() {
   const [carregando, setCarregando] = useState(false);
 
   const [cliente, setCliente] = useState({ nome: "", telefone: "", email: "" });
+  const [emailConfirm, setEmailConfirm] = useState("");
   const [cepInput, setCepInput] = useState("");
   const [taxaEntrega, setTaxaEntrega] = useState<number | null>(null);
   const [endereco, setEndereco] = useState({
@@ -61,6 +62,10 @@ function CheckoutPage() {
     setErro(null);
     if (!cliente.nome || cliente.telefone.length < 14 || !/\S+@\S+/.test(cliente.email)) {
       setErro("Preencha nome, telefone válido e e-mail.");
+      return;
+    }
+    if (cliente.email.trim().toLowerCase() !== emailConfirm.trim().toLowerCase()) {
+      setErro("Os e-mails não coincidem. Confira a confirmação.");
       return;
     }
     proximo();
@@ -114,6 +119,10 @@ function CheckoutPage() {
   async function finalizarPagamento() {
     setErro(null);
     setCarregando(true);
+    // Abre uma aba imediatamente (com user-activation) para evitar bloqueio
+    // de popup e a política X-Frame-Options do Mercado Pago no iframe do preview.
+    const janelaPagamento = window.open("about:blank", "_blank", "noopener,noreferrer");
+
     try {
       const pedido = await fnCriarPedido({
         data: {
@@ -142,24 +151,28 @@ function CheckoutPage() {
       });
 
       limpar();
-      // Redireciona ao Checkout Pro do MP. Usa top-level para escapar do
-      // iframe do preview do Lovable (o MP bloqueia embed via X-Frame-Options).
       const url = pref.checkout_url;
+
+      // 1) Se conseguimos abrir a aba no clique, apenas navegamos ela.
+      if (janelaPagamento && !janelaPagamento.closed) {
+        janelaPagamento.location.href = url;
+        return;
+      }
+
+      // 2) Tenta escapar do iframe do preview via top-level.
       try {
         if (window.top && window.top !== window.self) {
           window.top.location.href = url;
           return;
         }
       } catch {
-        // cross-origin: cai no fallback
-      }
-      // Tenta nova aba primeiro (funciona dentro do preview mesmo com sandbox)
-      const novaAba = window.open(url, "_blank", "noopener,noreferrer");
-      if (!novaAba) {
-        window.location.href = url;
+        /* cross-origin: cai no fallback */
       }
 
+      // 3) Fallback: navega a própria janela.
+      window.location.href = url;
     } catch (e: unknown) {
+      if (janelaPagamento && !janelaPagamento.closed) janelaPagamento.close();
       setErro(e instanceof Error ? e.message : "Erro ao processar pedido.");
     } finally {
       setCarregando(false);
@@ -205,9 +218,27 @@ function CheckoutPage() {
                   <input
                     className="input"
                     type="email"
+                    autoComplete="email"
                     value={cliente.email}
                     onChange={(e) => setCliente({ ...cliente, email: e.target.value })}
                   />
+                </Campo>
+                <Campo label="Confirme o e-mail">
+                  <input
+                    className="input"
+                    type="email"
+                    autoComplete="off"
+                    onPaste={(e) => e.preventDefault()}
+                    value={emailConfirm}
+                    onChange={(e) => setEmailConfirm(e.target.value)}
+                  />
+                  {emailConfirm.length > 0 &&
+                    emailConfirm.trim().toLowerCase() !==
+                      cliente.email.trim().toLowerCase() && (
+                      <span className="mt-1 block text-xs text-destructive">
+                        Os e-mails não coincidem.
+                      </span>
+                    )}
                 </Campo>
               </div>
             )}
