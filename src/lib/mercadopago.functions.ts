@@ -28,13 +28,13 @@ const inputSchema = z.object({
  */
 export const criarPreferenciaMP = createServerFn({ method: "POST" })
   .inputValidator((raw) => inputSchema.parse(raw))
-  .handler(async ({ data }): Promise<CreatePreferenceResult> => {
-    const accessToken =
-      process.env.MERCADOPAGO_ACCESS_TOKEN_PROD ||
-      process.env.MERCADOPAGO_ACCESS_TOKEN_TEST;
+  .handler(async ({ data }): Promise<CreatePreferenceResult & { checkout_url: string; is_sandbox: boolean }> => {
+    const prodToken = process.env.MERCADOPAGO_ACCESS_TOKEN_PROD;
+    const testToken = process.env.MERCADOPAGO_ACCESS_TOKEN_TEST;
+    const accessToken = prodToken || testToken;
+    // Se não há token de produção, estamos em sandbox e devemos usar sandbox_init_point.
+    const isSandbox = !prodToken;
 
-    // URL pública para back_urls e webhook. Em produção defina PUBLIC_APP_URL
-    // (ex.: https://carbodobem.com.br) via secret; localhost quebra back_urls do MP.
     const publicUrl =
       process.env.PUBLIC_APP_URL ??
       "https://project--58f6f86b-1d2b-449d-b777-7408cba43a69.lovable.app";
@@ -86,7 +86,6 @@ export const criarPreferenciaMP = createServerFn({ method: "POST" })
 
     const json = (await res.json()) as CreatePreferenceResult;
 
-    // Persiste o preference_id no pedido (bypassa RLS via service role).
     try {
       const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
       await supabaseAdmin
@@ -97,5 +96,6 @@ export const criarPreferenciaMP = createServerFn({ method: "POST" })
       console.error("[MP] falha ao salvar preference_id", e);
     }
 
-    return json;
+    const checkout_url = isSandbox ? json.sandbox_init_point : json.init_point;
+    return { ...json, checkout_url, is_sandbox: isSandbox };
   });
