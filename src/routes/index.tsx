@@ -128,10 +128,24 @@ function Home() {
       </section>
 
       <footer className="border-t border-border/60 bg-card">
-        <div className="mx-auto max-w-6xl px-4 py-6 text-sm text-muted-foreground">
-          © {new Date().getFullYear()} Carbo do Bem — comida congelada com carinho.
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-6 text-sm text-muted-foreground">
+          <span>
+            © {new Date().getFullYear()} Carbo do Bem — comida congelada com carinho.
+          </span>
+          <nav className="flex gap-4 text-xs">
+            <a
+              href="/privacidade"
+              className="hover:text-foreground"
+            >
+              Privacidade
+            </a>
+            <a href="/termos" className="hover:text-foreground">
+              Termos
+            </a>
+          </nav>
         </div>
       </footer>
+
     </div>
   );
 }
