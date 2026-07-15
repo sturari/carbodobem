@@ -175,9 +175,10 @@ export async function criarCheckoutMercadoPago(data: CriarCheckoutInput) {
 
   const valorTotal = subtotal + taxaEntrega;
 
+  const { cpf: cpfCliente, ...clienteSemCpf } = data.cliente;
   const { data: clienteRow, error: clienteError } = await supa
     .from("clientes")
-    .insert(data.cliente)
+    .insert(clienteSemCpf)
     .select("id")
     .single();
   if (clienteError || !clienteRow) {
