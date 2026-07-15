@@ -35,7 +35,6 @@ function CheckoutPage() {
   const [etapa, setEtapa] = useState<Etapa>(1);
   const [erro, setErro] = useState<string | null>(null);
   const [carregando, setCarregando] = useState(false);
-  const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
 
   const [cliente, setCliente] = useState({ nome: "", telefone: "", email: "", cpf: "" });
   const [cpfInput, setCpfInput] = useState("");
@@ -55,8 +54,6 @@ function CheckoutPage() {
   const [obs, setObs] = useState("");
 
   const fnValidarCEP = useServerFn(validarCEP);
-  const fnIniciarCheckout = useServerFn(iniciarCheckoutMercadoPago);
-  const submissaoRef = React.useRef(false);
 
   const itensCheckout = isDev && itens.length === 0 ? [SALMAO_DEV] : itens;
   const total = itensCheckout.reduce((acc, item) => acc + item.preco * item.quantidade, 0);
