@@ -50,6 +50,7 @@ function CheckoutPage() {
 
   const fnValidarCEP = useServerFn(validarCEP);
   const fnIniciarCheckout = useServerFn(iniciarCheckoutMercadoPago);
+  const submissaoRef = React.useRef(false);
 
   const itensCheckout = isDev && itens.length === 0 ? [SALMAO_DEV] : itens;
   const total = itensCheckout.reduce((acc, item) => acc + item.preco * item.quantidade, 0);
