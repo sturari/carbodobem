@@ -4,11 +4,13 @@ import { z } from "zod";
 
 const statusEnum = z.enum([
   "pendente",
+  "pagamento_confirmado",
   "em_preparo",
   "saiu_para_entrega",
   "entregue",
   "cancelado",
 ]);
+
 
 async function assertAdmin(ctx: { supabase: any; userId: string }) {
   const { data, error } = await ctx.supabase
