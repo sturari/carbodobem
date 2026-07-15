@@ -131,6 +131,8 @@ function AdminPage() {
 function PedidosTab() {
   const listFn = useServerFn(listarPedidosAdmin);
   const updateFn = useServerFn(atualizarStatusPedido);
+  const refundFn = useServerFn(reembolsarPedido);
+  const syncFn = useServerFn(sincronizarPedidoMP);
   const qc = useQueryClient();
 
   const pedidosQ = useQuery({
@@ -142,6 +144,24 @@ function PedidosTab() {
     mutationFn: (v: { pedido_id: string; status: StatusPedido }) =>
       updateFn({ data: v }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-pedidos"] }),
+  });
+
+  const refundMut = useMutation({
+    mutationFn: (pedido_id: string) => refundFn({ data: { pedido_id } }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["admin-pedidos"] });
+      alert("Reembolso solicitado com sucesso no Mercado Pago.");
+    },
+    onError: (e: Error) => alert(e.message),
+  });
+
+  const syncMut = useMutation({
+    mutationFn: (pedido_id: string) => syncFn({ data: { pedido_id } }),
+    onSuccess: (res) => {
+      qc.invalidateQueries({ queryKey: ["admin-pedidos"] });
+      alert(`Status sincronizado com o Mercado Pago: ${res.status}`);
+    },
+    onError: (e: Error) => alert(e.message),
   });
 
   if (pedidosQ.isLoading)
