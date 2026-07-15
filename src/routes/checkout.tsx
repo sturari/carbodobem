@@ -30,7 +30,7 @@ function CheckoutPage() {
 
   const [hydrated, setHydrated] = useState(false);
   const [authChecked, setAuthChecked] = useState(false);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [, setUserEmail] = useState<string | null>(null);
   const [isDev, setIsDev] = useState(false);
   const [etapa, setEtapa] = useState<Etapa>(1);
   const [erro, setErro] = useState<string | null>(null);
