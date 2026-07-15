@@ -182,8 +182,6 @@ function CheckoutPage() {
     proximo();
   }
 
-  const submissaoRef = React.useRef(false);
-
   async function finalizarPagamento() {
     // Guarda síncrona contra cliques duplicados (mais rápida que o setState).
     if (submissaoRef.current || carregando || checkoutUrl) return;
