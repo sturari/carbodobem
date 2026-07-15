@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import React, { useState } from "react";
 import { ArrowLeft, Check, ExternalLink, Loader2 } from "lucide-react";
@@ -6,10 +6,12 @@ import { type ItemCarrinho, useCart } from "@/lib/cart-store";
 import { formatBRL, formatCEP, formatTelefone, onlyDigits } from "@/lib/format";
 import { validarCEP } from "@/lib/cep.functions";
 import { iniciarCheckoutMercadoPago } from "@/lib/mercadopago.functions";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/checkout")({
   component: CheckoutPage,
 });
+
 
 type Etapa = 1 | 2 | 3 | 4 | 5;
 
