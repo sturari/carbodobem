@@ -181,7 +181,13 @@ function CheckoutPage() {
     proximo();
   }
 
+  const submissaoRef = React.useRef(false);
+
   async function finalizarPagamento() {
+    // Guarda síncrona contra cliques duplicados (mais rápida que o setState).
+    if (submissaoRef.current || carregando || checkoutUrl) return;
+    submissaoRef.current = true;
+
     setErro(null);
     setCarregando(true);
     setCheckoutUrl(null);
@@ -222,6 +228,8 @@ function CheckoutPage() {
       }
     } catch (e: unknown) {
       setErro(e instanceof Error ? e.message : "Erro ao processar pedido.");
+      // Libera nova tentativa em caso de falha real.
+      submissaoRef.current = false;
     } finally {
       setCarregando(false);
     }
