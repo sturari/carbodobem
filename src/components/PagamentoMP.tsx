@@ -802,10 +802,12 @@ function FluxoCartao({
 function FluxoRedirect({
   dados,
   onCriado,
+  onPedidoCriado,
   onVoltar,
 }: {
   dados: DadosPedido;
   onCriado?: () => void;
+  onPedidoCriado?: (pedidoId: string) => void;
   onVoltar: () => void;
 }) {
   const fnIniciar = useServerFn(iniciarCheckoutMercadoPago);
