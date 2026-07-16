@@ -103,10 +103,43 @@ function luhnValido(numero: string): boolean {
 export function PagamentoMP({ dados, valorTotal, onCriado }: Props) {
   const navigate = useNavigate();
   const [metodo, setMetodo] = useState<Metodo | null>(null);
+  // Trava anti-duplicação: uma vez que um pedido foi criado no MP,
+  // não permitimos que o usuário volte e recrie outro sem confirmar.
+  const [pedidoAtivo, setPedidoAtivo] = useState<{ id: string; metodo: Metodo } | null>(
+    null,
+  );
+
+  function handlePedidoCriado(id: string, m: Metodo) {
+    setPedidoAtivo({ id, metodo: m });
+  }
+
+  function tentarVoltar() {
+    if (!pedidoAtivo) {
+      setMetodo(null);
+      return;
+    }
+    const ok = window.confirm(
+      `Você já iniciou um pagamento (pedido #${pedidoAtivo.id.slice(0, 8)}). ` +
+        `Se trocar de método, este pedido permanece pendente até você concluir ou ` +
+        `ele expirar. Deseja continuar mesmo assim?`,
+    );
+    if (ok) {
+      setPedidoAtivo(null);
+      setMetodo(null);
+    }
+  }
 
   return (
     <div className="space-y-4">
       <h2 className="font-display text-lg font-bold">Pagamento</h2>
+
+      {pedidoAtivo && !metodo && (
+        <div className="rounded-lg border border-primary/40 bg-primary/5 px-3 py-2 text-xs text-foreground">
+          Pagamento em andamento para o pedido{" "}
+          <span className="font-mono">#{pedidoAtivo.id.slice(0, 8)}</span>. Termine
+          este pagamento antes de iniciar outro.
+        </div>
+      )}
 
       {!metodo && (
         <>
@@ -139,10 +172,11 @@ export function PagamentoMP({ dados, valorTotal, onCriado }: Props) {
           dados={dados}
           valorTotal={valorTotal}
           onCriado={onCriado}
+          onPedidoCriado={(id) => handlePedidoCriado(id, "pix")}
           onSucesso={(pedidoId) =>
             navigate({ to: "/checkout/sucesso", search: { pedido: pedidoId } as never })
           }
-          onVoltar={() => setMetodo(null)}
+          onVoltar={tentarVoltar}
         />
       )}
 
@@ -151,15 +185,21 @@ export function PagamentoMP({ dados, valorTotal, onCriado }: Props) {
           dados={dados}
           valorTotal={valorTotal}
           onCriado={onCriado}
+          onPedidoCriado={(id) => handlePedidoCriado(id, "cartao")}
           onSucesso={(pedidoId) =>
             navigate({ to: "/checkout/sucesso", search: { pedido: pedidoId } as never })
           }
-          onVoltar={() => setMetodo(null)}
+          onVoltar={tentarVoltar}
         />
       )}
 
       {metodo === "redirect" && (
-        <FluxoRedirect dados={dados} onCriado={onCriado} onVoltar={() => setMetodo(null)} />
+        <FluxoRedirect
+          dados={dados}
+          onCriado={onCriado}
+          onPedidoCriado={(id) => handlePedidoCriado(id, "redirect")}
+          onVoltar={tentarVoltar}
+        />
       )}
     </div>
   );
