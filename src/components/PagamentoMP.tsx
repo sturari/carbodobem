@@ -472,12 +472,14 @@ function FluxoCartao({
   dados,
   valorTotal,
   onCriado,
+  onPedidoCriado,
   onSucesso,
   onVoltar,
 }: {
   dados: DadosPedido;
   valorTotal: number;
   onCriado?: () => void;
+  onPedidoCriado?: (pedidoId: string) => void;
   onSucesso: (pedidoId: string) => void;
   onVoltar: () => void;
 }) {
