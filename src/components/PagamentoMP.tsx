@@ -283,6 +283,7 @@ function FluxoPix({
           expires_at: r.expires_at,
         });
         setStatus(r.status);
+        onPedidoCriado?.(r.pedido_id);
       } catch (e) {
         setErro(e instanceof Error ? e.message : "Erro ao gerar Pix.");
         submissaoRef.current = false;
