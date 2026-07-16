@@ -8,6 +8,7 @@ import {
   iniciarCheckoutMercadoPago,
   confirmarPagamentoMercadoPago,
   obterMercadoPagoPublicKey,
+  regerarPagamentoPix,
 } from "@/lib/mercadopago.functions";
 import { formatBRL } from "@/lib/format";
 import {
