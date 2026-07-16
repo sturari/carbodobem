@@ -861,6 +861,7 @@ function FluxoRedirect({
     setErro(null);
     try {
       const r = await fnIniciar({ data: { ...dados, origin: window.location.origin } });
+      onPedidoCriado?.(r.pedido_id);
       setUrl(r.checkout_url);
       try {
         if (window.top && window.top !== window.self) {
