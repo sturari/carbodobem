@@ -260,6 +260,7 @@ function FluxoPix({
   useEffect(() => {
     if (!pix) return;
     if (status === "aprovado") {
+      onCriado?.();
       const t = setTimeout(() => onSucesso(pix.pedido_id), 800);
       return () => clearTimeout(t);
     }
