@@ -461,7 +461,18 @@ function FluxoPix({
         {status === "aprovado" && "✔ Pagamento confirmado! Redirecionando…"}
         {status === "recusado" && "Pagamento recusado. Escolha outro método."}
         {status !== "aprovado" && status !== "recusado" && expirado && (
-          <span>Este Pix expirou. Volte e escolha outro método.</span>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span>Este Pix expirou.</span>
+            <button
+              type="button"
+              onClick={regerarPix}
+              disabled={regerando}
+              className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground disabled:opacity-60"
+            >
+              {regerando && <Loader2 className="h-3 w-3 animate-spin" />}
+              {regerando ? "Gerando…" : "Gerar novo Pix"}
+            </button>
+          </div>
         )}
         {status !== "aprovado" && status !== "recusado" && !expirado && (
           <div className="flex flex-wrap items-center justify-between gap-2">
