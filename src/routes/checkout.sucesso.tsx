@@ -67,6 +67,11 @@ function Sucesso() {
 
   const finalStatus = normalizar(statusConfirmado || collection_status || status);
 
+  const limparCarrinho = useCart((s) => s.limpar);
+  React.useEffect(() => {
+    if (finalStatus === "aprovado") limparCarrinho();
+  }, [finalStatus, limparCarrinho]);
+
   const config =
     finalStatus === "recusado"
       ? {
