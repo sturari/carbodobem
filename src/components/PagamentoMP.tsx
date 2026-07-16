@@ -668,6 +668,7 @@ function FluxoCartao({
           },
         },
       });
+      onPedidoCriado?.(r.pedido_id);
       if (r.status === "aprovado") {
         onCriado?.();
         onSucesso(r.pedido_id);
