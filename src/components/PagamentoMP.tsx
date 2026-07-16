@@ -585,9 +585,10 @@ function FluxoCartao({
           },
         },
       });
-      onCriado?.();
-
-      if (r.status === "aprovado" || r.status === "pendente") {
+      if (r.status === "aprovado") {
+        onCriado?.();
+        onSucesso(r.pedido_id);
+      } else if (r.status === "pendente") {
         onSucesso(r.pedido_id);
       } else {
         setErro("Pagamento recusado pela operadora. Tente outro cartão.");
