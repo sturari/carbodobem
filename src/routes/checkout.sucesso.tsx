@@ -4,6 +4,7 @@ import { CheckCircle2, Clock, Loader2, RefreshCw, XCircle } from "lucide-react";
 import React from "react";
 
 import { confirmarPagamentoMercadoPago } from "@/lib/mercadopago.functions";
+import { useCart } from "@/lib/cart-store";
 
 export const Route = createFileRoute("/checkout/sucesso")({
   validateSearch: (search: Record<string, unknown>) => {
