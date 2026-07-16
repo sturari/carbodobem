@@ -239,7 +239,6 @@ function FluxoPix({
           expires_at: r.expires_at,
         });
         setStatus(r.status);
-        onCriado?.();
       } catch (e) {
         setErro(e instanceof Error ? e.message : "Erro ao gerar Pix.");
         submissaoRef.current = false;
@@ -261,6 +260,7 @@ function FluxoPix({
   useEffect(() => {
     if (!pix) return;
     if (status === "aprovado") {
+      onCriado?.();
       const t = setTimeout(() => onSucesso(pix.pedido_id), 800);
       return () => clearTimeout(t);
     }
@@ -585,9 +585,10 @@ function FluxoCartao({
           },
         },
       });
-      onCriado?.();
-
-      if (r.status === "aprovado" || r.status === "pendente") {
+      if (r.status === "aprovado") {
+        onCriado?.();
+        onSucesso(r.pedido_id);
+      } else if (r.status === "pendente") {
         onSucesso(r.pedido_id);
       } else {
         setErro("Pagamento recusado pela operadora. Tente outro cartão.");
@@ -774,7 +775,6 @@ function FluxoRedirect({
     setErro(null);
     try {
       const r = await fnIniciar({ data: { ...dados, origin: window.location.origin } });
-      onCriado?.();
       setUrl(r.checkout_url);
       try {
         if (window.top && window.top !== window.self) {

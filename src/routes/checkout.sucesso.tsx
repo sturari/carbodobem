@@ -4,6 +4,7 @@ import { CheckCircle2, Clock, Loader2, RefreshCw, XCircle } from "lucide-react";
 import React from "react";
 
 import { confirmarPagamentoMercadoPago } from "@/lib/mercadopago.functions";
+import { useCart } from "@/lib/cart-store";
 
 export const Route = createFileRoute("/checkout/sucesso")({
   validateSearch: (search: Record<string, unknown>) => {
@@ -65,6 +66,11 @@ function Sucesso() {
   }, [confirmar]);
 
   const finalStatus = normalizar(statusConfirmado || collection_status || status);
+
+  const limparCarrinho = useCart((s) => s.limpar);
+  React.useEffect(() => {
+    if (finalStatus === "aprovado") limparCarrinho();
+  }, [finalStatus, limparCarrinho]);
 
   const config =
     finalStatus === "recusado"
