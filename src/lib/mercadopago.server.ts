@@ -411,6 +411,89 @@ export async function criarPagamentoPixMP(data: CriarPedidoInput) {
   };
 }
 
+/**
+ * Reemite um novo pagamento Pix para um pedido pendente já existente.
+ * Não cria pedido nem cliente novos — apenas emite outra cobrança Pix
+ * usando o mesmo `external_reference` e valor do pedido.
+ * Valida email do cliente para prevenir hijack por outro usuário.
+ */
+export async function regerarPagamentoPixMP(params: {
+  pedidoId: string;
+  cliente: ClienteInput;
+}) {
+  const { accessToken } = getMercadoPagoConfig();
+  const publicUrl = getPublicAppUrl();
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+  const { data: pedido, error: pedidoErr } = await supabaseAdmin
+    .from("pedidos")
+    .select("id, status, valor_total, cliente_id, clientes(email)")
+    .eq("id", params.pedidoId)
+    .single();
+  if (pedidoErr || !pedido) throw new Error("Pedido não encontrado.");
+  if (pedido.status !== "pendente") {
+    throw new Error("Este pedido não está mais pendente.");
+  }
+  const emailPedido = (pedido as { clientes?: { email?: string } | null }).clientes?.email;
+  if (!emailPedido || emailPedido.toLowerCase() !== params.cliente.email.toLowerCase()) {
+    throw new Error("Pedido não pertence a este cliente.");
+  }
+
+  const valorTotal = Number(pedido.valor_total);
+  const payer = payerFromCliente(params.cliente, params.cliente.cpf);
+  const body = {
+    transaction_amount: Number(valorTotal.toFixed(2)),
+    description: `Pedido ${params.pedidoId}`,
+    payment_method_id: "pix",
+    external_reference: params.pedidoId,
+    notification_url: `${publicUrl}/api/public/webhooks/mercadopago`,
+    statement_descriptor: "CARBO DO BEM",
+    payer: {
+      email: params.cliente.email,
+      first_name: payer.first_name,
+      last_name: payer.last_name,
+      identification: { type: "CPF", number: params.cliente.cpf },
+    },
+  };
+
+  const res = await fetch("https://api.mercadopago.com/v1/payments", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${accessToken}`,
+      // Idempotency única por reemissão — usa timestamp para permitir múltiplas.
+      "X-Idempotency-Key": `pix-${params.pedidoId}-${Date.now()}`,
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    console.error("[MP] erro reemitir pix", res.status, text);
+    throw new Error("Não foi possível gerar um novo Pix.");
+  }
+
+  const payment = (await res.json()) as MercadoPagoPayment;
+  const td = payment.point_of_interaction?.transaction_data;
+  if (!td?.qr_code) throw new Error("Mercado Pago não retornou o QR do Pix.");
+
+  await supabaseAdmin
+    .from("pedidos")
+    .update({ mercadopago_payment_id: String(payment.id) })
+    .eq("id", params.pedidoId);
+
+  return {
+    pedido_id: params.pedidoId,
+    payment_id: String(payment.id),
+    status: mapMercadoPagoStatus(payment.status).pagamentoStatus,
+    qr_code: td.qr_code,
+    qr_code_base64: td.qr_code_base64 ?? null,
+    ticket_url: td.ticket_url ?? null,
+    expires_at: payment.date_of_expiration ?? null,
+    valor_total: valorTotal,
+  };
+}
+
 /* ============================================================
  * Fluxo 3: Pagamento com cartão (token gerado no cliente via MP.js).
  * O front tokeniza os dados do cartão localmente com a public key —

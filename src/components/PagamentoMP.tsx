@@ -8,6 +8,7 @@ import {
   iniciarCheckoutMercadoPago,
   confirmarPagamentoMercadoPago,
   obterMercadoPagoPublicKey,
+  regerarPagamentoPix,
 } from "@/lib/mercadopago.functions";
 import { formatBRL } from "@/lib/format";
 import {
@@ -102,10 +103,43 @@ function luhnValido(numero: string): boolean {
 export function PagamentoMP({ dados, valorTotal, onCriado }: Props) {
   const navigate = useNavigate();
   const [metodo, setMetodo] = useState<Metodo | null>(null);
+  // Trava anti-duplicação: uma vez que um pedido foi criado no MP,
+  // não permitimos que o usuário volte e recrie outro sem confirmar.
+  const [pedidoAtivo, setPedidoAtivo] = useState<{ id: string; metodo: Metodo } | null>(
+    null,
+  );
+
+  function handlePedidoCriado(id: string, m: Metodo) {
+    setPedidoAtivo({ id, metodo: m });
+  }
+
+  function tentarVoltar() {
+    if (!pedidoAtivo) {
+      setMetodo(null);
+      return;
+    }
+    const ok = window.confirm(
+      `Você já iniciou um pagamento (pedido #${pedidoAtivo.id.slice(0, 8)}). ` +
+        `Se trocar de método, este pedido permanece pendente até você concluir ou ` +
+        `ele expirar. Deseja continuar mesmo assim?`,
+    );
+    if (ok) {
+      setPedidoAtivo(null);
+      setMetodo(null);
+    }
+  }
 
   return (
     <div className="space-y-4">
       <h2 className="font-display text-lg font-bold">Pagamento</h2>
+
+      {pedidoAtivo && !metodo && (
+        <div className="rounded-lg border border-primary/40 bg-primary/5 px-3 py-2 text-xs text-foreground">
+          Pagamento em andamento para o pedido{" "}
+          <span className="font-mono">#{pedidoAtivo.id.slice(0, 8)}</span>. Termine
+          este pagamento antes de iniciar outro.
+        </div>
+      )}
 
       {!metodo && (
         <>
@@ -138,10 +172,11 @@ export function PagamentoMP({ dados, valorTotal, onCriado }: Props) {
           dados={dados}
           valorTotal={valorTotal}
           onCriado={onCriado}
+          onPedidoCriado={(id) => handlePedidoCriado(id, "pix")}
           onSucesso={(pedidoId) =>
             navigate({ to: "/checkout/sucesso", search: { pedido: pedidoId } as never })
           }
-          onVoltar={() => setMetodo(null)}
+          onVoltar={tentarVoltar}
         />
       )}
 
@@ -150,15 +185,21 @@ export function PagamentoMP({ dados, valorTotal, onCriado }: Props) {
           dados={dados}
           valorTotal={valorTotal}
           onCriado={onCriado}
+          onPedidoCriado={(id) => handlePedidoCriado(id, "cartao")}
           onSucesso={(pedidoId) =>
             navigate({ to: "/checkout/sucesso", search: { pedido: pedidoId } as never })
           }
-          onVoltar={() => setMetodo(null)}
+          onVoltar={tentarVoltar}
         />
       )}
 
       {metodo === "redirect" && (
-        <FluxoRedirect dados={dados} onCriado={onCriado} onVoltar={() => setMetodo(null)} />
+        <FluxoRedirect
+          dados={dados}
+          onCriado={onCriado}
+          onPedidoCriado={(id) => handlePedidoCriado(id, "redirect")}
+          onVoltar={tentarVoltar}
+        />
       )}
     </div>
   );
@@ -196,16 +237,19 @@ function FluxoPix({
   dados,
   valorTotal,
   onCriado,
+  onPedidoCriado,
   onSucesso,
   onVoltar,
 }: {
   dados: DadosPedido;
   valorTotal: number;
   onCriado?: () => void;
+  onPedidoCriado?: (pedidoId: string) => void;
   onSucesso: (pedidoId: string) => void;
   onVoltar: () => void;
 }) {
   const fnCriar = useServerFn(criarPagamentoPix);
+  const fnRegerar = useServerFn(regerarPagamentoPix);
   const fnConsultar = useServerFn(confirmarPagamentoMercadoPago);
 
   const [carregando, setCarregando] = useState(false);
@@ -239,6 +283,7 @@ function FluxoPix({
           expires_at: r.expires_at,
         });
         setStatus(r.status);
+        onPedidoCriado?.(r.pedido_id);
       } catch (e) {
         setErro(e instanceof Error ? e.message : "Erro ao gerar Pix.");
         submissaoRef.current = false;
@@ -302,6 +347,31 @@ function FluxoPix({
       /* silencioso */
     } finally {
       setVerificando(false);
+    }
+  }
+
+  const [regerando, setRegerando] = useState(false);
+  async function regerarPix() {
+    if (!pix || regerando) return;
+    setRegerando(true);
+    setErro(null);
+    try {
+      const r = await fnRegerar({
+        data: { pedido_id: pix.pedido_id, cliente: dados.cliente },
+      });
+      setPix({
+        pedido_id: r.pedido_id,
+        payment_id: r.payment_id,
+        qr_code: r.qr_code,
+        qr_code_base64: r.qr_code_base64,
+        expires_at: r.expires_at,
+      });
+      setStatus(r.status);
+      setAgora(Date.now());
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : "Não foi possível gerar um novo Pix.");
+    } finally {
+      setRegerando(false);
     }
   }
 
@@ -391,7 +461,18 @@ function FluxoPix({
         {status === "aprovado" && "✔ Pagamento confirmado! Redirecionando…"}
         {status === "recusado" && "Pagamento recusado. Escolha outro método."}
         {status !== "aprovado" && status !== "recusado" && expirado && (
-          <span>Este Pix expirou. Volte e escolha outro método.</span>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span>Este Pix expirou.</span>
+            <button
+              type="button"
+              onClick={regerarPix}
+              disabled={regerando}
+              className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground disabled:opacity-60"
+            >
+              {regerando && <Loader2 className="h-3 w-3 animate-spin" />}
+              {regerando ? "Gerando…" : "Gerar novo Pix"}
+            </button>
+          </div>
         )}
         {status !== "aprovado" && status !== "recusado" && !expirado && (
           <div className="flex flex-wrap items-center justify-between gap-2">
@@ -428,12 +509,14 @@ function FluxoCartao({
   dados,
   valorTotal,
   onCriado,
+  onPedidoCriado,
   onSucesso,
   onVoltar,
 }: {
   dados: DadosPedido;
   valorTotal: number;
   onCriado?: () => void;
+  onPedidoCriado?: (pedidoId: string) => void;
   onSucesso: (pedidoId: string) => void;
   onVoltar: () => void;
 }) {
@@ -585,6 +668,7 @@ function FluxoCartao({
           },
         },
       });
+      onPedidoCriado?.(r.pedido_id);
       if (r.status === "aprovado") {
         onCriado?.();
         onSucesso(r.pedido_id);
@@ -756,10 +840,12 @@ function FluxoCartao({
 function FluxoRedirect({
   dados,
   onCriado,
+  onPedidoCriado,
   onVoltar,
 }: {
   dados: DadosPedido;
   onCriado?: () => void;
+  onPedidoCriado?: (pedidoId: string) => void;
   onVoltar: () => void;
 }) {
   const fnIniciar = useServerFn(iniciarCheckoutMercadoPago);
@@ -775,6 +861,7 @@ function FluxoRedirect({
     setErro(null);
     try {
       const r = await fnIniciar({ data: { ...dados, origin: window.location.origin } });
+      onPedidoCriado?.(r.pedido_id);
       setUrl(r.checkout_url);
       try {
         if (window.top && window.top !== window.self) {
