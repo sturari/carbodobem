@@ -237,16 +237,19 @@ function FluxoPix({
   dados,
   valorTotal,
   onCriado,
+  onPedidoCriado,
   onSucesso,
   onVoltar,
 }: {
   dados: DadosPedido;
   valorTotal: number;
   onCriado?: () => void;
+  onPedidoCriado?: (pedidoId: string) => void;
   onSucesso: (pedidoId: string) => void;
   onVoltar: () => void;
 }) {
   const fnCriar = useServerFn(criarPagamentoPix);
+  const fnRegerar = useServerFn(regerarPagamentoPix);
   const fnConsultar = useServerFn(confirmarPagamentoMercadoPago);
 
   const [carregando, setCarregando] = useState(false);
