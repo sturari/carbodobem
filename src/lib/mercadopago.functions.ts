@@ -94,6 +94,27 @@ export const criarPagamentoPix = createServerFn({ method: "POST" })
     return criarPagamentoPixMP({ ...data, user_id: userId });
   });
 
+const regerarPixSchema = z.object({
+  pedido_id: z.string().uuid(),
+  cliente: z.object({
+    nome: z.string().min(2),
+    telefone: z.string().min(10),
+    email: z.string().email(),
+    cpf: z.string().length(11),
+  }),
+});
+
+/** Reemite Pix para um pedido pendente existente (não recria o pedido). */
+export const regerarPagamentoPix = createServerFn({ method: "POST" })
+  .inputValidator((raw) => regerarPixSchema.parse(raw))
+  .handler(async ({ data }) => {
+    const { regerarPagamentoPixMP } = await import("@/lib/mercadopago.server");
+    return regerarPagamentoPixMP({
+      pedidoId: data.pedido_id,
+      cliente: data.cliente,
+    });
+  });
+
 /** Fluxo cartão: recebe token gerado no cliente pelo MP.js. */
 export const criarPagamentoCartao = createServerFn({ method: "POST" })
   .inputValidator((raw) => cartaoSchema.parse(raw))
