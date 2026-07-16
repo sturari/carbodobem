@@ -350,6 +350,31 @@ function FluxoPix({
     }
   }
 
+  const [regerando, setRegerando] = useState(false);
+  async function regerarPix() {
+    if (!pix || regerando) return;
+    setRegerando(true);
+    setErro(null);
+    try {
+      const r = await fnRegerar({
+        data: { pedido_id: pix.pedido_id, cliente: dados.cliente },
+      });
+      setPix({
+        pedido_id: r.pedido_id,
+        payment_id: r.payment_id,
+        qr_code: r.qr_code,
+        qr_code_base64: r.qr_code_base64,
+        expires_at: r.expires_at,
+      });
+      setStatus(r.status);
+      setAgora(Date.now());
+    } catch (e) {
+      setErro(e instanceof Error ? e.message : "Não foi possível gerar um novo Pix.");
+    } finally {
+      setRegerando(false);
+    }
+  }
+
   // Countdown
   const expiraEm = pix?.expires_at ? new Date(pix.expires_at).getTime() : null;
   const restanteMs = expiraEm ? expiraEm - agora : null;
