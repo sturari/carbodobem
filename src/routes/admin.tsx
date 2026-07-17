@@ -497,16 +497,66 @@ function ProdutosTab() {
               className={inputCls}
             />
           </Field>
-          <Field label="Imagem (URL)">
-            <input
-              type="url"
-              value={form.imagem_url}
-              onChange={(e) =>
-                setForm({ ...form, imagem_url: e.target.value })
-              }
-              placeholder="https://..."
-              className={inputCls}
-            />
+          <Field label="Imagem do produto" className="sm:col-span-2">
+            <div className="space-y-2">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  e.target.value = "";
+                  if (!file) return;
+                  if (file.size > 5 * 1024 * 1024) {
+                    alert("Imagem muito grande. Limite: 5 MB.");
+                    return;
+                  }
+                  setUploading(true);
+                  try {
+                    const ext =
+                      file.name.split(".").pop()?.toLowerCase() || "jpg";
+                    const path = `${crypto.randomUUID()}.${ext}`;
+                    const { error: upErr } = await supabase.storage
+                      .from("produtos")
+                      .upload(path, file, {
+                        cacheControl: "31536000",
+                        upsert: false,
+                        contentType: file.type || undefined,
+                      });
+                    if (upErr) throw upErr;
+                    const publicPath = `/api/public/produtos-imagem?path=${encodeURIComponent(path)}`;
+                    setForm((f) => ({ ...f, imagem_url: publicPath }));
+                  } catch (err) {
+                    alert(
+                      "Falha ao enviar imagem: " +
+                        (err instanceof Error ? err.message : String(err)),
+                    );
+                  } finally {
+                    setUploading(false);
+                  }
+                }}
+                disabled={uploading}
+                className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-primary-foreground disabled:opacity-50"
+              />
+              {uploading && (
+                <p className="text-xs text-muted-foreground">Enviando...</p>
+              )}
+              <input
+                type="text"
+                value={form.imagem_url}
+                onChange={(e) =>
+                  setForm({ ...form, imagem_url: e.target.value })
+                }
+                placeholder="ou cole uma URL https://..."
+                className={inputCls}
+              />
+              {form.imagem_url && (
+                <img
+                  src={form.imagem_url}
+                  alt="Prévia"
+                  className="h-24 w-24 rounded object-cover"
+                />
+              )}
+            </div>
           </Field>
           <Field label="Descrição" className="sm:col-span-2">
             <textarea
