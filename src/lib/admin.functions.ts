@@ -125,7 +125,7 @@ const produtoSchema = z.object({
   preco: z.number().nonnegative(),
   estoque: z.number().int().nonnegative(),
   gramatura_g: z.number().int().nonnegative().optional().nullable(),
-  imagem_url: z.string().url().max(500).optional().nullable().or(z.literal("")),
+  imagem_url: z.string().max(500).optional().nullable().or(z.literal("")),
   ativo: z.boolean(),
 });
 
