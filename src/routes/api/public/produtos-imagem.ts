@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/api/public/produtos-imagem")({
+  // @ts-expect-error - `server` handled by TanStack Start plugin at build time
   server: {
     handlers: {
       GET: async ({ request }: { request: Request }) => {
