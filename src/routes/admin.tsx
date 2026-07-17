@@ -327,6 +327,7 @@ function ProdutosTab() {
   const [form, setForm] = useState<ProdutoForm>(emptyForm);
   const [editing, setEditing] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const produtosQ = useQuery({
     queryKey: ["admin-produtos"],
