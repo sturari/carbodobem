@@ -513,26 +513,15 @@ function Campo({ label, children }: { label: string; children: React.ReactNode }
 const DIAS_SEMANA_CURTO = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const MESES_CURTO = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
-// Janela de entrega: 09:00 às 20:00, slots de 30 minutos
-const HORA_INICIO = 9;
-const HORA_FIM = 20;
-const INTERVALO_MIN = 30;
-// Buffer mínimo (em minutos) entre o pedido e o horário de entrega no mesmo dia
+// Janela de entrega por turno
 const BUFFER_MIN_MESMO_DIA = 45;
 
-function gerarSlots(): { minutosDoDia: number; label: string }[] {
-  const slots: { minutosDoDia: number; label: string }[] = [];
-  const pad = (n: number) => String(n).padStart(2, "0");
-  for (let h = HORA_INICIO; h <= HORA_FIM; h++) {
-    for (let m = 0; m < 60; m += INTERVALO_MIN) {
-      if (h === HORA_FIM && m > 0) break;
-      slots.push({ minutosDoDia: h * 60 + m, label: `${pad(h)}:${pad(m)}` });
-    }
-  }
-  return slots;
-}
+const SLOTS_HORARIO: { minutosDoDia: number; label: string }[] = [
+  { minutosDoDia: 9 * 60, label: "09h às 12h" },
+  { minutosDoDia: 12 * 60, label: "12h às 15h" },
+  { minutosDoDia: 15 * 60, label: "15h às 18h" },
+];
 
-const SLOTS_HORARIO = gerarSlots();
 
 function mesmoDia(a: Date, b: Date) {
   return (
