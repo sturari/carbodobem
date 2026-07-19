@@ -112,6 +112,14 @@ export function CarrinhoDrawer() {
             >
               Finalizar pedido
             </Link>
+            <button
+              type="button"
+              onClick={fechar}
+              className="block w-full rounded-full border border-border/70 bg-card py-3 text-center text-sm font-semibold text-foreground transition hover:bg-muted"
+            >
+              Continuar comprando
+            </button>
+
           </footer>
         )}
       </aside>
