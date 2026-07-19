@@ -730,11 +730,12 @@ function SeletorHorario({
               month: "long",
             })}
           </strong>{" "}
-          às{" "}
+          no turno{" "}
           <strong>
-            {new Date(value).getHours().toString().padStart(2, "0")}:
-            {new Date(value).getMinutes().toString().padStart(2, "0")}
+            {SLOTS_HORARIO.find((s) => s.minutosDoDia === selecao.minutos)?.label ??
+              `${new Date(value).getHours().toString().padStart(2, "0")}h`}
           </strong>
+
         </div>
       )}
     </div>
