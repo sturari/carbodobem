@@ -513,26 +513,15 @@ function Campo({ label, children }: { label: string; children: React.ReactNode }
 const DIAS_SEMANA_CURTO = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const MESES_CURTO = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
-// Janela de entrega: 09:00 às 20:00, slots de 30 minutos
-const HORA_INICIO = 9;
-const HORA_FIM = 20;
-const INTERVALO_MIN = 30;
-// Buffer mínimo (em minutos) entre o pedido e o horário de entrega no mesmo dia
+// Janela de entrega por turno
 const BUFFER_MIN_MESMO_DIA = 45;
 
-function gerarSlots(): { minutosDoDia: number; label: string }[] {
-  const slots: { minutosDoDia: number; label: string }[] = [];
-  const pad = (n: number) => String(n).padStart(2, "0");
-  for (let h = HORA_INICIO; h <= HORA_FIM; h++) {
-    for (let m = 0; m < 60; m += INTERVALO_MIN) {
-      if (h === HORA_FIM && m > 0) break;
-      slots.push({ minutosDoDia: h * 60 + m, label: `${pad(h)}:${pad(m)}` });
-    }
-  }
-  return slots;
-}
+const SLOTS_HORARIO: { minutosDoDia: number; label: string }[] = [
+  { minutosDoDia: 9 * 60, label: "09h às 12h" },
+  { minutosDoDia: 12 * 60, label: "12h às 15h" },
+  { minutosDoDia: 15 * 60, label: "15h às 18h" },
+];
 
-const SLOTS_HORARIO = gerarSlots();
 
 function mesmoDia(a: Date, b: Date) {
   return (
@@ -689,16 +678,16 @@ function SeletorHorario({
       <div>
         <div className="mb-2 flex items-center justify-between">
           <span className="block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Escolha o horário
+            Escolha o turno
           </span>
           {ehHoje && (
             <span className="text-[10px] text-muted-foreground">
-              Entrega em até {BUFFER_MIN_MESMO_DIA} min a partir de agora
+              Turnos com início a menos de {BUFFER_MIN_MESMO_DIA} min ficam indisponíveis
             </span>
           )}
         </div>
-        <div className="max-h-56 overflow-y-auto rounded-xl border border-border/60 bg-background/40 p-2">
-          <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-6">
+        <div className="rounded-xl border border-border/60 bg-background/40 p-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
             {SLOTS_HORARIO.map((slot) => {
               const indisponivel = ehHoje && slot.minutosDoDia < minMinutosHoje;
               const selecionado =
@@ -709,7 +698,8 @@ function SeletorHorario({
                   type="button"
                   disabled={indisponivel}
                   onClick={() => escolher(diaAtivo, slot.minutosDoDia)}
-                  className={`rounded-lg border px-2 py-1.5 text-sm font-semibold transition ${
+                  className={`rounded-lg border px-3 py-2.5 text-sm font-semibold transition ${
+
                     selecionado
                       ? "border-warm bg-warm text-white shadow"
                       : indisponivel
@@ -740,11 +730,12 @@ function SeletorHorario({
               month: "long",
             })}
           </strong>{" "}
-          às{" "}
+          no turno{" "}
           <strong>
-            {new Date(value).getHours().toString().padStart(2, "0")}:
-            {new Date(value).getMinutes().toString().padStart(2, "0")}
+            {SLOTS_HORARIO.find((s) => s.minutosDoDia === selecao.minutos)?.label ??
+              `${new Date(value).getHours().toString().padStart(2, "0")}h`}
           </strong>
+
         </div>
       )}
     </div>
