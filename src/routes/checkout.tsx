@@ -678,16 +678,16 @@ function SeletorHorario({
       <div>
         <div className="mb-2 flex items-center justify-between">
           <span className="block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Escolha o horário
+            Escolha o turno
           </span>
           {ehHoje && (
             <span className="text-[10px] text-muted-foreground">
-              Entrega em até {BUFFER_MIN_MESMO_DIA} min a partir de agora
+              Turnos com início a menos de {BUFFER_MIN_MESMO_DIA} min ficam indisponíveis
             </span>
           )}
         </div>
-        <div className="max-h-56 overflow-y-auto rounded-xl border border-border/60 bg-background/40 p-2">
-          <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-6">
+        <div className="rounded-xl border border-border/60 bg-background/40 p-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
             {SLOTS_HORARIO.map((slot) => {
               const indisponivel = ehHoje && slot.minutosDoDia < minMinutosHoje;
               const selecionado =
@@ -698,7 +698,8 @@ function SeletorHorario({
                   type="button"
                   disabled={indisponivel}
                   onClick={() => escolher(diaAtivo, slot.minutosDoDia)}
-                  className={`rounded-lg border px-2 py-1.5 text-sm font-semibold transition ${
+                  className={`rounded-lg border px-3 py-2.5 text-sm font-semibold transition ${
+
                     selecionado
                       ? "border-warm bg-warm text-white shadow"
                       : indisponivel
