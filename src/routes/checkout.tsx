@@ -231,7 +231,7 @@ function CheckoutPage() {
             {etapa === 1 && (
               <div className="space-y-4">
                 <h2 className="font-display text-lg font-bold">Seus dados</h2>
-                <Campo label="Nome completo">
+                <Campo label="NOME">
                   <input
                     className="input"
                     value={cliente.nome}
