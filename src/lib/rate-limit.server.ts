@@ -26,7 +26,6 @@ export async function enforceRateLimit(opts: RateLimitOptions): Promise<void> {
 
   const { data: row } = await supa
     .from("rate_limits")
-    // @ts-expect-error - tabela existe na migration mais recente
     .select("key, window_start, count")
     .eq("key", opts.key)
     .maybeSingle();
@@ -36,7 +35,6 @@ export async function enforceRateLimit(opts: RateLimitOptions): Promise<void> {
 
   if (expired) {
     await supa
-      // @ts-expect-error - tabela existe na migration mais recente
       .from("rate_limits")
       .upsert(
         {
@@ -62,7 +60,6 @@ export async function enforceRateLimit(opts: RateLimitOptions): Promise<void> {
   }
 
   await supa
-    // @ts-expect-error - tabela existe na migration mais recente
     .from("rate_limits")
     .update({ count: nextCount, updated_at: now.toISOString() })
     .eq("key", opts.key);
