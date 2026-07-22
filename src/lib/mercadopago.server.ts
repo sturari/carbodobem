@@ -154,32 +154,13 @@ async function buscarProdutos(supa: SupabaseAdmin, itens: CheckoutItem[]) {
  */
 async function criarPedidoBase(input: CriarPedidoInput) {
   const { supabaseAdmin: supa } = await import("@/integrations/supabase/client.server");
+  const { calcularItensPedido } = await import("@/lib/mercadopago-pure");
   const area = await buscarAreaEntrega(supa, input.endereco.cep);
   const taxaEntrega = Number(area.taxa_entrega);
   const produtos = await buscarProdutos(supa, input.itens);
 
-  let subtotal = 0;
-  const itensCalc = input.itens.map((item) => {
-    const produto = produtos.find((p) => p.id === item.produto_id);
-    if (!produto) throw new Error("Produto inválido no pedido.");
-    if (!produto.ativo) throw new Error(`Produto indisponível: ${produto.nome}`);
-    if (produto.estoque <= 0) throw new Error(`Produto sem estoque: ${produto.nome}`);
-    if (item.quantidade > produto.estoque) {
-      throw new Error(
-        `Estoque insuficiente para ${produto.nome} (disponível: ${produto.estoque}).`,
-      );
-    }
-    const preco = Number(produto.preco);
-    subtotal += preco * item.quantidade;
-    return {
-      produto_id: produto.id,
-      nome: produto.nome,
-      quantidade: item.quantidade,
-      preco_unitario: preco,
-    };
-  });
-
-  const valorTotal = subtotal + taxaEntrega;
+  const calc = calcularItensPedido(produtos, input.itens, taxaEntrega);
+  const { itens: itensCalc, subtotal, valorTotal } = calc;
 
   const { cpf: cpfCliente, ...clienteSemCpf } = input.cliente;
   const { data: clienteRow, error: clienteError } = await supa
@@ -427,7 +408,7 @@ export async function regerarPagamentoPixMP(params: {
 
   const { data: pedido, error: pedidoErr } = await supabaseAdmin
     .from("pedidos")
-    .select("id, status, valor_total, cliente_id, clientes(email)")
+    .select("id, status, valor_total, cliente_id, pix_lock_until, clientes(email)")
     .eq("id", params.pedidoId)
     .single();
   if (pedidoErr || !pedido) throw new Error("Pedido não encontrado.");
@@ -438,6 +419,22 @@ export async function regerarPagamentoPixMP(params: {
   if (!emailPedido || emailPedido.toLowerCase() !== params.cliente.email.toLowerCase()) {
     throw new Error("Pedido não pertence a este cliente.");
   }
+
+  // Lock atômico: só um requester por vez consegue reemitir dentro de 15s.
+  // Evita cobranças duplicadas em cliques rápidos ou retries do cliente.
+  const nowIso = new Date().toISOString();
+  const lockUntilIso = new Date(Date.now() + 15_000).toISOString();
+  const { data: locked, error: lockErr } = await supabaseAdmin
+    .from("pedidos")
+    .update({ pix_lock_until: lockUntilIso })
+    .eq("id", params.pedidoId)
+    .or(`pix_lock_until.is.null,pix_lock_until.lt.${nowIso}`)
+    .select("id");
+  if (lockErr) throw new Error(lockErr.message);
+  if (!locked || locked.length === 0) {
+    throw new Error("Já estamos gerando um novo Pix. Aguarde alguns segundos.");
+  }
+
 
   const valorTotal = Number(pedido.valor_total);
   const payer = payerFromCliente(params.cliente, params.cliente.cpf);

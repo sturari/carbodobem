@@ -62,6 +62,27 @@ async function resolveUserId(): Promise<string | undefined> {
   }
 }
 
+/**
+ * Rate limit best-effort para endpoints de pagamento. Chaveia por IP + rota.
+ * Sem edge WAF: isso reduz abuso simples (scripts, retries automáticos)
+ * mas não substitui um limitador em borda.
+ */
+async function limitarPagamento(rota: string): Promise<void> {
+  const { getRequestHeader } = await import("@tanstack/react-start/server");
+  const { enforceRateLimit, clientKeyFromHeaders } = await import(
+    "@/lib/rate-limit.server"
+  );
+  const headers = {
+    get: (name: string) => getRequestHeader(name) ?? null,
+  };
+  const ip = clientKeyFromHeaders(headers);
+  await enforceRateLimit({
+    key: `pay:${rota}:${ip}`,
+    limit: 10,
+    windowSeconds: 60,
+  });
+}
+
 /** Retorna a public key do Mercado Pago para uso no SDK JS do cliente. */
 export const obterMercadoPagoPublicKey = createServerFn({ method: "GET" }).handler(async () => {
   const { getMercadoPagoPublicKey } = await import("@/lib/mercadopago.server");
@@ -72,6 +93,7 @@ export const obterMercadoPagoPublicKey = createServerFn({ method: "GET" }).handl
 export const iniciarCheckoutMercadoPago = createServerFn({ method: "POST" })
   .inputValidator((raw) => checkoutSchema.parse(raw))
   .handler(async ({ data }) => {
+    await limitarPagamento("checkout");
     const { getRequestHeader } = await import("@tanstack/react-start/server");
     const { criarCheckoutMercadoPago } = await import("@/lib/mercadopago.server");
     const forwardedProto = getRequestHeader("x-forwarded-proto") || "https";
@@ -89,6 +111,7 @@ export const iniciarCheckoutMercadoPago = createServerFn({ method: "POST" })
 export const criarPagamentoPix = createServerFn({ method: "POST" })
   .inputValidator((raw) => pedidoBaseSchema.parse(raw))
   .handler(async ({ data }) => {
+    await limitarPagamento("pix");
     const { criarPagamentoPixMP } = await import("@/lib/mercadopago.server");
     const userId = await resolveUserId();
     return criarPagamentoPixMP({ ...data, user_id: userId });
@@ -108,6 +131,7 @@ const regerarPixSchema = z.object({
 export const regerarPagamentoPix = createServerFn({ method: "POST" })
   .inputValidator((raw) => regerarPixSchema.parse(raw))
   .handler(async ({ data }) => {
+    await limitarPagamento("pix-regen");
     const { regerarPagamentoPixMP } = await import("@/lib/mercadopago.server");
     return regerarPagamentoPixMP({
       pedidoId: data.pedido_id,
@@ -119,6 +143,7 @@ export const regerarPagamentoPix = createServerFn({ method: "POST" })
 export const criarPagamentoCartao = createServerFn({ method: "POST" })
   .inputValidator((raw) => cartaoSchema.parse(raw))
   .handler(async ({ data }) => {
+    await limitarPagamento("cartao");
     const { criarPagamentoCartaoMP } = await import("@/lib/mercadopago.server");
     const userId = await resolveUserId();
     return criarPagamentoCartaoMP({ ...data, user_id: userId });

@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { createHmac, timingSafeEqual } from "crypto";
+import { verifyMercadoPagoSignature } from "@/lib/mercadopago-pure";
 
 /**
  * Webhook Mercado Pago (Checkout Pro / IPN v2).
@@ -15,40 +15,6 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type, X-Signature, X-Request-Id",
 };
-
-function verifySignature(params: {
-  signatureHeader: string | null;
-  requestId: string | null;
-  dataId: string | null;
-  secret: string;
-}): boolean {
-  const { signatureHeader, requestId, dataId, secret } = params;
-  if (!signatureHeader || !dataId) return false;
-
-  // Header: "ts=1699999999,v1=abcdef..."
-  const parts = Object.fromEntries(
-    signatureHeader.split(",").map((p) => {
-      const [k, v] = p.split("=");
-      return [k?.trim(), v?.trim()];
-    }),
-  );
-  const ts = parts.ts;
-  const v1 = parts.v1;
-  if (!ts || !v1) return false;
-
-  // Manifest conforme docs MP: id:<data.id>;request-id:<x-request-id>;ts:<ts>;
-  const manifest = `id:${dataId};request-id:${requestId ?? ""};ts:${ts};`;
-  const expected = createHmac("sha256", secret).update(manifest).digest("hex");
-
-  try {
-    const a = Buffer.from(v1, "hex");
-    const b = Buffer.from(expected, "hex");
-    if (a.length !== b.length) return false;
-    return timingSafeEqual(a, b);
-  } catch {
-    return false;
-  }
-}
 
 export const Route = createFileRoute("/api/public/webhooks/mercadopago")({
   // @ts-expect-error - `server` handled by TanStack Start plugin at build time
@@ -89,7 +55,7 @@ export const Route = createFileRoute("/api/public/webhooks/mercadopago")({
           (bodyJson?.data?.id ? String(bodyJson.data.id) : null);
         const type = url.searchParams.get("type") || bodyJson?.type || bodyJson?.action;
 
-        const okSig = verifySignature({ signatureHeader, requestId, dataId, secret });
+        const okSig = verifyMercadoPagoSignature({ signatureHeader, requestId, dataId, secret });
         if (!okSig) {
           console.warn("[MP webhook] assinatura inválida", { requestId, dataId });
           return new Response("Invalid signature", { status: 401, headers: corsHeaders });
