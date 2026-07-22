@@ -62,6 +62,27 @@ async function resolveUserId(): Promise<string | undefined> {
   }
 }
 
+/**
+ * Rate limit best-effort para endpoints de pagamento. Chaveia por IP + rota.
+ * Sem edge WAF: isso reduz abuso simples (scripts, retries automáticos)
+ * mas não substitui um limitador em borda.
+ */
+async function limitarPagamento(rota: string): Promise<void> {
+  const { getRequestHeader } = await import("@tanstack/react-start/server");
+  const { enforceRateLimit, clientKeyFromHeaders } = await import(
+    "@/lib/rate-limit.server"
+  );
+  const headers = {
+    get: (name: string) => getRequestHeader(name) ?? null,
+  };
+  const ip = clientKeyFromHeaders(headers);
+  await enforceRateLimit({
+    key: `pay:${rota}:${ip}`,
+    limit: 10,
+    windowSeconds: 60,
+  });
+}
+
 /** Retorna a public key do Mercado Pago para uso no SDK JS do cliente. */
 export const obterMercadoPagoPublicKey = createServerFn({ method: "GET" }).handler(async () => {
   const { getMercadoPagoPublicKey } = await import("@/lib/mercadopago.server");
