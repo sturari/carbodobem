@@ -93,6 +93,7 @@ export const obterMercadoPagoPublicKey = createServerFn({ method: "GET" }).handl
 export const iniciarCheckoutMercadoPago = createServerFn({ method: "POST" })
   .inputValidator((raw) => checkoutSchema.parse(raw))
   .handler(async ({ data }) => {
+    await limitarPagamento("checkout");
     const { getRequestHeader } = await import("@tanstack/react-start/server");
     const { criarCheckoutMercadoPago } = await import("@/lib/mercadopago.server");
     const forwardedProto = getRequestHeader("x-forwarded-proto") || "https";
@@ -110,6 +111,7 @@ export const iniciarCheckoutMercadoPago = createServerFn({ method: "POST" })
 export const criarPagamentoPix = createServerFn({ method: "POST" })
   .inputValidator((raw) => pedidoBaseSchema.parse(raw))
   .handler(async ({ data }) => {
+    await limitarPagamento("pix");
     const { criarPagamentoPixMP } = await import("@/lib/mercadopago.server");
     const userId = await resolveUserId();
     return criarPagamentoPixMP({ ...data, user_id: userId });
@@ -129,6 +131,7 @@ const regerarPixSchema = z.object({
 export const regerarPagamentoPix = createServerFn({ method: "POST" })
   .inputValidator((raw) => regerarPixSchema.parse(raw))
   .handler(async ({ data }) => {
+    await limitarPagamento("pix-regen");
     const { regerarPagamentoPixMP } = await import("@/lib/mercadopago.server");
     return regerarPagamentoPixMP({
       pedidoId: data.pedido_id,
@@ -140,6 +143,7 @@ export const regerarPagamentoPix = createServerFn({ method: "POST" })
 export const criarPagamentoCartao = createServerFn({ method: "POST" })
   .inputValidator((raw) => cartaoSchema.parse(raw))
   .handler(async ({ data }) => {
+    await limitarPagamento("cartao");
     const { criarPagamentoCartaoMP } = await import("@/lib/mercadopago.server");
     const userId = await resolveUserId();
     return criarPagamentoCartaoMP({ ...data, user_id: userId });
