@@ -154,32 +154,13 @@ async function buscarProdutos(supa: SupabaseAdmin, itens: CheckoutItem[]) {
  */
 async function criarPedidoBase(input: CriarPedidoInput) {
   const { supabaseAdmin: supa } = await import("@/integrations/supabase/client.server");
+  const { calcularItensPedido } = await import("@/lib/mercadopago-pure");
   const area = await buscarAreaEntrega(supa, input.endereco.cep);
   const taxaEntrega = Number(area.taxa_entrega);
   const produtos = await buscarProdutos(supa, input.itens);
 
-  let subtotal = 0;
-  const itensCalc = input.itens.map((item) => {
-    const produto = produtos.find((p) => p.id === item.produto_id);
-    if (!produto) throw new Error("Produto inválido no pedido.");
-    if (!produto.ativo) throw new Error(`Produto indisponível: ${produto.nome}`);
-    if (produto.estoque <= 0) throw new Error(`Produto sem estoque: ${produto.nome}`);
-    if (item.quantidade > produto.estoque) {
-      throw new Error(
-        `Estoque insuficiente para ${produto.nome} (disponível: ${produto.estoque}).`,
-      );
-    }
-    const preco = Number(produto.preco);
-    subtotal += preco * item.quantidade;
-    return {
-      produto_id: produto.id,
-      nome: produto.nome,
-      quantidade: item.quantidade,
-      preco_unitario: preco,
-    };
-  });
-
-  const valorTotal = subtotal + taxaEntrega;
+  const calc = calcularItensPedido(produtos, input.itens, taxaEntrega);
+  const { itens: itensCalc, subtotal, valorTotal } = calc;
 
   const { cpf: cpfCliente, ...clienteSemCpf } = input.cliente;
   const { data: clienteRow, error: clienteError } = await supa
