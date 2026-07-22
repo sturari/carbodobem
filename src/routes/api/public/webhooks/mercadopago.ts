@@ -55,7 +55,7 @@ export const Route = createFileRoute("/api/public/webhooks/mercadopago")({
           (bodyJson?.data?.id ? String(bodyJson.data.id) : null);
         const type = url.searchParams.get("type") || bodyJson?.type || bodyJson?.action;
 
-        const okSig = verifySignature({ signatureHeader, requestId, dataId, secret });
+        const okSig = verifyMercadoPagoSignature({ signatureHeader, requestId, dataId, secret });
         if (!okSig) {
           console.warn("[MP webhook] assinatura inválida", { requestId, dataId });
           return new Response("Invalid signature", { status: 401, headers: corsHeaders });
