@@ -408,7 +408,7 @@ export async function regerarPagamentoPixMP(params: {
 
   const { data: pedido, error: pedidoErr } = await supabaseAdmin
     .from("pedidos")
-    .select("id, status, valor_total, cliente_id, clientes(email)")
+    .select("id, status, valor_total, cliente_id, pix_lock_until, clientes(email)")
     .eq("id", params.pedidoId)
     .single();
   if (pedidoErr || !pedido) throw new Error("Pedido não encontrado.");
@@ -419,6 +419,22 @@ export async function regerarPagamentoPixMP(params: {
   if (!emailPedido || emailPedido.toLowerCase() !== params.cliente.email.toLowerCase()) {
     throw new Error("Pedido não pertence a este cliente.");
   }
+
+  // Lock atômico: só um requester por vez consegue reemitir dentro de 15s.
+  // Evita cobranças duplicadas em cliques rápidos ou retries do cliente.
+  const nowIso = new Date().toISOString();
+  const lockUntilIso = new Date(Date.now() + 15_000).toISOString();
+  const { data: locked, error: lockErr } = await supabaseAdmin
+    .from("pedidos")
+    .update({ pix_lock_until: lockUntilIso })
+    .eq("id", params.pedidoId)
+    .or(`pix_lock_until.is.null,pix_lock_until.lt.${nowIso}`)
+    .select("id");
+  if (lockErr) throw new Error(lockErr.message);
+  if (!locked || locked.length === 0) {
+    throw new Error("Já estamos gerando um novo Pix. Aguarde alguns segundos.");
+  }
+
 
   const valorTotal = Number(pedido.valor_total);
   const payer = payerFromCliente(params.cliente, params.cliente.cpf);
