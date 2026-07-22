@@ -167,6 +167,7 @@ export type Database = {
           mercadopago_payment_id: string | null
           mercadopago_preference_id: string | null
           observacoes: string | null
+          pix_lock_until: string | null
           status: Database["public"]["Enums"]["status_pedido"]
           updated_at: string
           user_id: string | null
@@ -181,6 +182,7 @@ export type Database = {
           mercadopago_payment_id?: string | null
           mercadopago_preference_id?: string | null
           observacoes?: string | null
+          pix_lock_until?: string | null
           status?: Database["public"]["Enums"]["status_pedido"]
           updated_at?: string
           user_id?: string | null
@@ -195,6 +197,7 @@ export type Database = {
           mercadopago_payment_id?: string | null
           mercadopago_preference_id?: string | null
           observacoes?: string | null
+          pix_lock_until?: string | null
           status?: Database["public"]["Enums"]["status_pedido"]
           updated_at?: string
           user_id?: string | null
@@ -256,6 +259,27 @@ export type Database = {
           nome?: string
           preco?: number
           updated_at?: string
+        }
+        Relationships: []
+      }
+      rate_limits: {
+        Row: {
+          count: number
+          key: string
+          updated_at: string
+          window_start: string
+        }
+        Insert: {
+          count?: number
+          key: string
+          updated_at?: string
+          window_start?: string
+        }
+        Update: {
+          count?: number
+          key?: string
+          updated_at?: string
+          window_start?: string
         }
         Relationships: []
       }
