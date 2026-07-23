@@ -98,6 +98,16 @@ const Email = ({
               <strong>Pedido:</strong> #{pedido_id.slice(0, 8).toUpperCase()}
             </Text>
           )}
+          {tracking_url && (
+            <>
+              <Text style={paragraph}>
+                Acompanhe seu pedido pelo link exclusivo abaixo — não precisa criar conta.
+              </Text>
+              <Button href={tracking_url} style={trackingBtn}>
+                Acompanhar pedido
+              </Button>
+            </>
+          )}
         </Section>
 
         <Section style={card}>
