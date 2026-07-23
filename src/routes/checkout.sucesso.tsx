@@ -153,6 +153,19 @@ function Sucesso() {
             Voltar à loja
           </Link>
         </div>
+
+        <div className="mt-6 rounded-xl border border-primary/20 bg-primary/5 p-4 text-left text-sm">
+          <p className="font-semibold">Quer acompanhar esse e outros pedidos mais facilmente?</p>
+          <p className="mt-1 text-muted-foreground">
+            Crie uma conta em segundos — ela é opcional e não muda nada no pedido atual.
+          </p>
+          <Link
+            to="/auth"
+            className="mt-3 inline-block rounded-full border border-primary px-4 py-1.5 text-xs font-semibold text-primary hover:bg-primary hover:text-primary-foreground transition"
+          >
+            Criar conta
+          </Link>
+        </div>
       </div>
     </div>
   );

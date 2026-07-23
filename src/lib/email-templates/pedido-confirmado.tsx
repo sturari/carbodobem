@@ -1,6 +1,7 @@
 import * as React from 'react'
 import {
   Body,
+  Button,
   Container,
   Head,
   Heading,
@@ -40,6 +41,7 @@ interface Props {
     cep: string
   }
   observacoes?: string | null
+  tracking_url?: string | null
 }
 
 const brl = (v: number) =>
@@ -71,6 +73,7 @@ const Email = ({
   horario_entrega,
   endereco,
   observacoes,
+  tracking_url,
 }: Props) => (
   <Html lang="pt-BR" dir="ltr">
     <Head />
@@ -94,6 +97,16 @@ const Email = ({
             <Text style={pedidoRef}>
               <strong>Pedido:</strong> #{pedido_id.slice(0, 8).toUpperCase()}
             </Text>
+          )}
+          {tracking_url && (
+            <>
+              <Text style={paragraph}>
+                Acompanhe seu pedido pelo link exclusivo abaixo — não precisa criar conta.
+              </Text>
+              <Button href={tracking_url} style={trackingBtn}>
+                Acompanhar pedido
+              </Button>
+            </>
           )}
         </Section>
 
@@ -212,3 +225,14 @@ const totalLabelBold = { color: '#1f5d3a', fontSize: '16px', fontWeight: 700 }
 const totalValueBold = { textAlign: 'right' as const, color: '#c45a1a', fontSize: '18px', fontWeight: 700 }
 const footer = { textAlign: 'center' as const, padding: '16px 0 0 0' }
 const footerText = { color: '#6b7565', fontSize: '12px', lineHeight: '18px', margin: 0 }
+const trackingBtn = {
+  display: 'inline-block',
+  backgroundColor: '#1f5d3a',
+  color: '#ffffff',
+  padding: '10px 18px',
+  borderRadius: '999px',
+  fontSize: '13px',
+  fontWeight: 600,
+  textDecoration: 'none',
+  marginTop: '8px',
+}

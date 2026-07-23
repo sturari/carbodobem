@@ -16,6 +16,7 @@ import { Route as CheckoutRouteImport } from './routes/checkout'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PedidoPedidoIdRouteImport } from './routes/pedido.$pedidoId'
 import { Route as CheckoutSucessoRouteImport } from './routes/checkout.sucesso'
 import { Route as ApiPublicProdutosImagemRouteImport } from './routes/api/public/produtos-imagem'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
@@ -56,6 +57,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PedidoPedidoIdRoute = PedidoPedidoIdRouteImport.update({
+  id: '/pedido/$pedidoId',
+  path: '/pedido/$pedidoId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const CheckoutSucessoRoute = CheckoutSucessoRouteImport.update({
   id: '/sucesso',
   path: '/sucesso',
@@ -88,6 +94,7 @@ export interface FileRoutesByFullPath {
   '/privacidade': typeof PrivacidadeRoute
   '/termos': typeof TermosRoute
   '/checkout/sucesso': typeof CheckoutSucessoRoute
+  '/pedido/$pedidoId': typeof PedidoPedidoIdRoute
   '/api/public/produtos-imagem': typeof ApiPublicProdutosImagemRoute
   '/api/public/webhooks/mercadopago': typeof ApiPublicWebhooksMercadopagoRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -101,6 +108,7 @@ export interface FileRoutesByTo {
   '/privacidade': typeof PrivacidadeRoute
   '/termos': typeof TermosRoute
   '/checkout/sucesso': typeof CheckoutSucessoRoute
+  '/pedido/$pedidoId': typeof PedidoPedidoIdRoute
   '/api/public/produtos-imagem': typeof ApiPublicProdutosImagemRoute
   '/api/public/webhooks/mercadopago': typeof ApiPublicWebhooksMercadopagoRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -115,6 +123,7 @@ export interface FileRoutesById {
   '/privacidade': typeof PrivacidadeRoute
   '/termos': typeof TermosRoute
   '/checkout/sucesso': typeof CheckoutSucessoRoute
+  '/pedido/$pedidoId': typeof PedidoPedidoIdRoute
   '/api/public/produtos-imagem': typeof ApiPublicProdutosImagemRoute
   '/api/public/webhooks/mercadopago': typeof ApiPublicWebhooksMercadopagoRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
@@ -130,6 +139,7 @@ export interface FileRouteTypes {
     | '/privacidade'
     | '/termos'
     | '/checkout/sucesso'
+    | '/pedido/$pedidoId'
     | '/api/public/produtos-imagem'
     | '/api/public/webhooks/mercadopago'
     | '/lovable/email/transactional/preview'
@@ -143,6 +153,7 @@ export interface FileRouteTypes {
     | '/privacidade'
     | '/termos'
     | '/checkout/sucesso'
+    | '/pedido/$pedidoId'
     | '/api/public/produtos-imagem'
     | '/api/public/webhooks/mercadopago'
     | '/lovable/email/transactional/preview'
@@ -156,6 +167,7 @@ export interface FileRouteTypes {
     | '/privacidade'
     | '/termos'
     | '/checkout/sucesso'
+    | '/pedido/$pedidoId'
     | '/api/public/produtos-imagem'
     | '/api/public/webhooks/mercadopago'
     | '/lovable/email/transactional/preview'
@@ -169,6 +181,7 @@ export interface RootRouteChildren {
   MeusPedidosRoute: typeof MeusPedidosRoute
   PrivacidadeRoute: typeof PrivacidadeRoute
   TermosRoute: typeof TermosRoute
+  PedidoPedidoIdRoute: typeof PedidoPedidoIdRoute
   ApiPublicProdutosImagemRoute: typeof ApiPublicProdutosImagemRoute
   ApiPublicWebhooksMercadopagoRoute: typeof ApiPublicWebhooksMercadopagoRoute
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
@@ -225,6 +238,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pedido/$pedidoId': {
+      id: '/pedido/$pedidoId'
+      path: '/pedido/$pedidoId'
+      fullPath: '/pedido/$pedidoId'
+      preLoaderRoute: typeof PedidoPedidoIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/checkout/sucesso': {
       id: '/checkout/sucesso'
       path: '/sucesso'
@@ -276,6 +296,7 @@ const rootRouteChildren: RootRouteChildren = {
   MeusPedidosRoute: MeusPedidosRoute,
   PrivacidadeRoute: PrivacidadeRoute,
   TermosRoute: TermosRoute,
+  PedidoPedidoIdRoute: PedidoPedidoIdRoute,
   ApiPublicProdutosImagemRoute: ApiPublicProdutosImagemRoute,
   ApiPublicWebhooksMercadopagoRoute: ApiPublicWebhooksMercadopagoRoute,
   LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,

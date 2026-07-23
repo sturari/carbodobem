@@ -1,91 +1,94 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import React, { useState } from "react";
-import { ArrowLeft, Check, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import { type ItemCarrinho, useCart } from "@/lib/cart-store";
-import { formatBRL, formatCEP, formatCPF, formatTelefone, isCPFValido, onlyDigits } from "@/lib/format";
-import { validarCEP } from "@/lib/cep.functions";
+import { formatBRL, formatCEP, formatCPF, formatTelefone } from "@/lib/format";
 import { PagamentoMP } from "@/components/PagamentoMP";
 import { supabase } from "@/integrations/supabase/client";
+import { Campo } from "@/components/checkout/Campo";
+import { Stepper, type EtapaCheckout } from "@/components/checkout/Stepper";
+import { SeletorHorario } from "@/components/checkout/SeletorHorario";
+import { useCheckoutForm } from "@/hooks/use-checkout-form";
 
 export const Route = createFileRoute("/checkout")({
   component: CheckoutPage,
 });
 
-
-type Etapa = 1 | 2 | 3 | 4 | 5;
-
-const SALMAO_DEV: ItemCarrinho = {
-  id: "496ca897-c59a-4f2e-898f-a8c1779bf1da",
-  nome: "Salmão ao Molho de Maracujá",
-  preco: 49.9,
-  imagem_url: "https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=800&auto=format&fit=crop",
-  gramatura_g: 350,
-  quantidade: 1,
-};
+// Atalho de dev — somente em builds de desenvolvimento.
+const SALMAO_DEV: ItemCarrinho | null = import.meta.env.DEV
+  ? {
+      id: "496ca897-c59a-4f2e-898f-a8c1779bf1da",
+      nome: "Salmão ao Molho de Maracujá",
+      preco: 49.9,
+      imagem_url:
+        "https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=800&auto=format&fit=crop",
+      gramatura_g: 350,
+      quantidade: 1,
+    }
+  : null;
 
 function CheckoutPage() {
   const { itens, limpar, adicionar } = useCart();
-  const navigate = useNavigate();
 
   const [hydrated, setHydrated] = useState(false);
-  const [authChecked, setAuthChecked] = useState(false);
-  const [, setUserEmail] = useState<string | null>(null);
+  const [signedIn, setSignedIn] = useState(false);
   const [isDev, setIsDev] = useState(false);
-  const [etapa, setEtapa] = useState<Etapa>(1);
-  const [erro, setErro] = useState<string | null>(null);
-  const [carregando, setCarregando] = useState(false);
+  const [etapa, setEtapa] = useState<EtapaCheckout>(1);
 
-  const [cliente, setCliente] = useState({ nome: "", telefone: "", email: "", cpf: "" });
-  const [cpfInput, setCpfInput] = useState("");
-  const [emailConfirm, setEmailConfirm] = useState("");
-  const [cepInput, setCepInput] = useState("");
-  const [taxaEntrega, setTaxaEntrega] = useState<number | null>(null);
-  const [endereco, setEndereco] = useState({
-    cep: "",
-    rua: "",
-    numero: "",
-    complemento: "",
-    bairro: "",
-    cidade: "",
-    uf: "",
-  });
-  const [horario, setHorario] = useState("");
-  const [obs, setObs] = useState("");
+  const form = useCheckoutForm();
+  const {
+    cliente,
+    setCliente,
+    cpfInput,
+    setCpfInput,
+    emailConfirm,
+    setEmailConfirm,
+    cepInput,
+    setCepInput,
+    taxaEntrega,
+    setTaxaEntrega,
+    endereco,
+    setEndereco,
+    horario,
+    setHorario,
+    obs,
+    setObs,
+    erro,
+    carregando,
+    validarEtapa1,
+    executarEtapa2,
+    validarEtapa3,
+    validarEtapa4,
+  } = form;
 
-  const fnValidarCEP = useServerFn(validarCEP);
-
-  const itensCheckout = isDev && itens.length === 0 ? [SALMAO_DEV] : itens;
+  const itensCheckout = isDev && itens.length === 0 && SALMAO_DEV ? [SALMAO_DEV] : itens;
   const total = itensCheckout.reduce((acc, item) => acc + item.preco * item.quantidade, 0);
 
-  // Atalho de dev (/checkout?dev=1): adiciona o Salmão ao carrinho,
-  // pré-preenche os dados e pula direto para a etapa de horário.
   React.useEffect(() => {
-    const dev = new URLSearchParams(window.location.search).get("dev") === "1";
+    const dev =
+      import.meta.env.DEV &&
+      new URLSearchParams(window.location.search).get("dev") === "1";
     setIsDev(dev);
     setHydrated(true);
   }, []);
 
-  // Requer login para checkout. Se não estiver logado, redireciona para /auth
-  // preservando o retorno. Também pré-preenche o e-mail com o da sessão.
+  // Pré-preenche e-mail se houver sessão. Guest checkout: nunca bloqueia.
   React.useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       const session = data.session;
-      if (!session) {
-        navigate({ to: "/auth", search: { redirect: "/checkout" } });
-        return;
-      }
+      if (!session) return;
       const email = session.user.email ?? "";
-      setUserEmail(email);
+      setSignedIn(true);
       setCliente((p) => ({ ...p, email: p.email || email }));
       setEmailConfirm((prev) => prev || email);
-      setAuthChecked(true);
     });
-  }, [navigate]);
+  }, [setCliente, setEmailConfirm]);
 
-
+  // Atalho de dev: adiciona Salmão ao carrinho e pula para o horário.
+  // Valores sensíveis vêm de VITE_DEV_* — nunca hard-coded.
   React.useEffect(() => {
-    if (!isDev) return;
+    if (!import.meta.env.DEV) return;
+    if (!isDev || !SALMAO_DEV) return;
     if (!useCart.getState().itens.find((i) => i.id === SALMAO_DEV.id)) {
       adicionar(
         {
@@ -99,14 +102,16 @@ function CheckoutPage() {
       );
     }
     useCart.setState({ aberto: false });
+    const devEmail = (import.meta.env.VITE_DEV_EMAIL as string | undefined) ?? "";
+    const devCpfRaw = (import.meta.env.VITE_DEV_CPF as string | undefined) ?? "";
     setCliente({
-      nome: "Teste Lovable",
-      telefone: "(61) 99999-9999",
-      email: "felipe.sturari@gmail.com",
-      cpf: "39053344705",
+      nome: (import.meta.env.VITE_DEV_NOME as string | undefined) ?? "Teste Lovable",
+      telefone: (import.meta.env.VITE_DEV_TELEFONE as string | undefined) ?? "(61) 99999-9999",
+      email: devEmail,
+      cpf: devCpfRaw.replace(/\D/g, ""),
     });
-    setCpfInput("390.533.447-05");
-    setEmailConfirm("felipe.sturari@gmail.com");
+    setCpfInput(devCpfRaw ? formatCPF(devCpfRaw) : "");
+    setEmailConfirm(devEmail);
     setCepInput("71503-505");
     setTaxaEntrega(15);
     setEndereco({
@@ -122,8 +127,7 @@ function CheckoutPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDev]);
 
-
-  if (!hydrated || !authChecked) {
+  if (!hydrated) {
     return (
       <div className="mx-auto max-w-md p-8 text-center">
         <Loader2 className="mx-auto h-5 w-5 animate-spin text-primary" />
@@ -143,74 +147,21 @@ function CheckoutPage() {
     );
   }
 
+  const proximo = () => setEtapa((e) => Math.min(5, e + 1) as EtapaCheckout);
+  const voltar = () => setEtapa((e) => Math.max(1, e - 1) as EtapaCheckout);
 
-  const proximo = () => setEtapa((e) => Math.min(5, e + 1) as Etapa);
-  const voltar = () => setEtapa((e) => Math.max(1, e - 1) as Etapa);
-
-  async function acaoEtapa1() {
-    setErro(null);
-    if (!cliente.nome || cliente.telefone.length < 14 || !/\S+@\S+/.test(cliente.email)) {
-      setErro("Preencha nome, telefone válido e confirme seu e-mail.");
-      return;
-    }
-    if (!isCPFValido(cpfInput)) {
-      setErro("Informe um CPF válido — é exigido pelo Mercado Pago para gerar o Pix.");
-      return;
-    }
-    setCliente((p) => ({ ...p, cpf: onlyDigits(cpfInput) }));
-    proximo();
-  }
-
-
-  async function acaoEtapa2() {
-    setErro(null);
-    setCarregando(true);
-    try {
-      const cepDigits = onlyDigits(cepInput);
-      const res = await fnValidarCEP({ data: { cep: cepDigits } });
-      if (!res.atende) {
-        setErro("Puxa! Ainda não entregamos nesse CEP.");
-        return;
-      }
-      setTaxaEntrega(res.taxa_entrega);
-      setEndereco((p) => ({
-        ...p,
-        cep: res.cep,
-        rua: res.endereco?.rua ?? "",
-        bairro: res.endereco?.bairro ?? "",
-        cidade: res.endereco?.cidade ?? "",
-        uf: res.endereco?.uf ?? "",
-      }));
-      proximo();
-    } catch (e: unknown) {
-      setErro(e instanceof Error ? e.message : "Erro ao validar CEP.");
-    } finally {
-      setCarregando(false);
+  async function handleContinuar() {
+    if (etapa === 1) {
+      // Exige "confirme o e-mail" quando o campo NÃO está pré-travado por sessão.
+      if (validarEtapa1({ exigirConfirmacaoEmail: !signedIn })) proximo();
+    } else if (etapa === 2) {
+      if (await executarEtapa2()) proximo();
+    } else if (etapa === 3) {
+      if (validarEtapa3()) proximo();
+    } else if (etapa === 4) {
+      if (validarEtapa4()) proximo();
     }
   }
-
-  function acaoEtapa3() {
-    setErro(null);
-    if (!endereco.rua || !endereco.numero || !endereco.bairro || !endereco.cidade || endereco.uf.length !== 2) {
-      setErro("Preencha o endereço completo.");
-      return;
-    }
-    proximo();
-  }
-
-  function acaoEtapa4() {
-    setErro(null);
-    if (!horario) {
-      setErro("Escolha um horário de entrega.");
-      return;
-    }
-    proximo();
-  }
-
-  // O antigo finalizarPagamento (redirect direto para o Checkout Pro) foi
-  // substituído pelo componente <PagamentoMP>, que expõe Pix nativo, cartão
-  // e o fluxo redirect como opções para o cliente.
-
 
   const totalComFrete = total + (taxaEntrega ?? 0);
 
@@ -231,6 +182,12 @@ function CheckoutPage() {
             {etapa === 1 && (
               <div className="space-y-4">
                 <h2 className="font-display text-lg font-bold">Seus dados</h2>
+                {!signedIn && (
+                  <p className="text-xs text-muted-foreground">
+                    Não precisa criar conta para comprar. Se preferir acompanhar seus pedidos depois,{" "}
+                    <Link to="/auth" className="text-primary underline">entrar / criar conta</Link>.
+                  </p>
+                )}
                 <Campo label="NOME">
                   <input
                     className="input"
@@ -247,19 +204,34 @@ function CheckoutPage() {
                     onChange={(e) => setCliente({ ...cliente, telefone: formatTelefone(e.target.value) })}
                   />
                 </Campo>
-                <Campo label="E-mail (da sua conta)">
+                <Campo label={signedIn ? "E-mail (da sua conta)" : "E-mail"}>
                   <input
-                    className="input opacity-70"
+                    className={`input ${signedIn ? "opacity-70" : ""}`}
                     type="email"
                     autoComplete="email"
                     value={cliente.email}
-                    readOnly
-                    disabled
+                    readOnly={signedIn}
+                    disabled={signedIn}
+                    onChange={(e) => setCliente({ ...cliente, email: e.target.value })}
                   />
                   <span className="mt-1 block text-xs text-muted-foreground">
-                    Este é o e-mail da sua conta. Ele será usado para o recibo e para acompanhar o pedido.
+                    {signedIn
+                      ? "E-mail da sua conta. Usaremos para o recibo e para acompanhar o pedido."
+                      : "Usaremos para enviar o recibo e o link de acompanhamento do pedido."}
                   </span>
                 </Campo>
+                {!signedIn && (
+                  <Campo label="Confirme o e-mail">
+                    <input
+                      className="input"
+                      type="email"
+                      autoComplete="off"
+                      value={emailConfirm}
+                      onChange={(e) => setEmailConfirm(e.target.value)}
+                      onPaste={(e) => e.preventDefault()}
+                    />
+                  </Campo>
+                )}
                 <Campo label="CPF">
                   <input
                     className="input"
@@ -272,7 +244,6 @@ function CheckoutPage() {
                     Necessário para gerar o Pix e emitir o recibo do Mercado Pago.
                   </span>
                 </Campo>
-
               </div>
             )}
 
@@ -353,7 +324,6 @@ function CheckoutPage() {
               </div>
             )}
 
-
             {etapa === 5 && (
               <PagamentoMP
                 dados={{
@@ -390,12 +360,7 @@ function CheckoutPage() {
                   Voltar
                 </button>
                 <button
-                  onClick={
-                    etapa === 1 ? acaoEtapa1
-                      : etapa === 2 ? acaoEtapa2
-                      : etapa === 3 ? acaoEtapa3
-                      : acaoEtapa4
-                  }
+                  onClick={handleContinuar}
                   disabled={carregando}
                   className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-2.5 font-semibold text-primary-foreground disabled:opacity-60"
                 >
@@ -416,7 +381,6 @@ function CheckoutPage() {
               </div>
             )}
           </div>
-
 
           <aside className="rounded-2xl border border-border/70 bg-card p-5 shadow-sm h-fit">
             <h3 className="font-display font-bold">Resumo</h3>
@@ -467,278 +431,3 @@ function CheckoutPage() {
     </div>
   );
 }
-
-function Stepper({ etapa }: { etapa: Etapa }) {
-  const passos = ["Você", "CEP", "Endereço", "Horário", "Pagamento"];
-  return (
-    <ol className="flex flex-wrap items-center gap-2 text-xs">
-      {passos.map((label, i) => {
-        const n = (i + 1) as Etapa;
-        const done = etapa > n;
-        const active = etapa === n;
-        return (
-          <li key={label} className="flex items-center gap-2">
-            <span
-              className={`flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-bold ${
-                done
-                  ? "bg-primary text-primary-foreground"
-                  : active
-                    ? "bg-warm text-white"
-                    : "bg-muted text-muted-foreground"
-              }`}
-            >
-              {done ? <Check className="h-3.5 w-3.5" /> : n}
-            </span>
-            <span className={active ? "font-semibold" : "text-muted-foreground"}>{label}</span>
-            {i < passos.length - 1 && <span className="text-muted-foreground">›</span>}
-          </li>
-        );
-      })}
-    </ol>
-  );
-}
-
-function Campo({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        {label}
-      </span>
-      {children}
-    </label>
-  );
-}
-
-// ============ Seletor de horário amigável ============
-const DIAS_SEMANA_CURTO = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-const MESES_CURTO = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
-
-// Janela de entrega por turno
-const BUFFER_MIN_MESMO_DIA = 45;
-
-const SLOTS_HORARIO: { minutosDoDia: number; label: string }[] = [
-  { minutosDoDia: 9 * 60, label: "09h às 12h" },
-  { minutosDoDia: 12 * 60, label: "12h às 15h" },
-  { minutosDoDia: 15 * 60, label: "15h às 18h" },
-];
-
-
-function mesmoDia(a: Date, b: Date) {
-  return (
-    a.getFullYear() === b.getFullYear() &&
-    a.getMonth() === b.getMonth() &&
-    a.getDate() === b.getDate()
-  );
-}
-
-function SeletorHorario({
-  value,
-  onChange,
-}: {
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  // Hoje + próximos 7 dias (8 opções rápidas)
-  const dias = React.useMemo(() => {
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0);
-    return Array.from({ length: 8 }, (_, i) => {
-      const d = new Date(hoje);
-      d.setDate(hoje.getDate() + i);
-      return d;
-    });
-  }, []);
-
-  // Data customizada (além da semana)
-  const [dataCustom, setDataCustom] = React.useState<Date | null>(null);
-  const [mostrarCustom, setMostrarCustom] = React.useState(false);
-
-  const diasDisponiveis = React.useMemo(() => {
-    return dataCustom ? [...dias, dataCustom] : dias;
-  }, [dias, dataCustom]);
-
-  // Reconstitui seleção a partir do valor atual (datetime-local string)
-  const selecao = React.useMemo(() => {
-    if (!value) return { diaIdx: -1, minutos: -1 };
-    const dt = new Date(value);
-    const diaIdx = diasDisponiveis.findIndex((d) => mesmoDia(d, dt));
-    return { diaIdx, minutos: dt.getHours() * 60 + dt.getMinutes() };
-  }, [value, diasDisponiveis]);
-
-  const [diaAtivo, setDiaAtivo] = React.useState<number>(
-    selecao.diaIdx >= 0 ? selecao.diaIdx : 0,
-  );
-
-  React.useEffect(() => {
-    if (selecao.diaIdx >= 0) setDiaAtivo(selecao.diaIdx);
-  }, [selecao.diaIdx]);
-
-  // Mínimo permitido em minutos-do-dia quando o dia ativo é hoje
-  const minMinutosHoje = React.useMemo(() => {
-    const agora = new Date();
-    return agora.getHours() * 60 + agora.getMinutes() + BUFFER_MIN_MESMO_DIA;
-  }, []);
-
-  const diaSelecionado = diasDisponiveis[diaAtivo];
-  const ehHoje = diaSelecionado ? mesmoDia(diaSelecionado, new Date()) : false;
-
-  function escolher(diaIdx: number, minutos: number) {
-    const base = diasDisponiveis[diaIdx];
-    if (!base) return;
-    const d = new Date(base);
-    d.setHours(Math.floor(minutos / 60), minutos % 60, 0, 0);
-    const pad = (n: number) => String(n).padStart(2, "0");
-    const s = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-    onChange(s);
-    setDiaAtivo(diaIdx);
-  }
-
-  function aplicarDataCustom(iso: string) {
-    if (!iso) return;
-    const [y, m, day] = iso.split("-").map(Number);
-    const d = new Date(y, m - 1, day, 0, 0, 0, 0);
-    setDataCustom(d);
-    setDiaAtivo(dias.length); // índice da data custom
-    setMostrarCustom(false);
-  }
-
-  // Data mínima do input custom = 8 dias após hoje (depois da semana rápida)
-  const minCustomISO = React.useMemo(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + dias.length);
-    const pad = (n: number) => String(n).padStart(2, "0");
-    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
-  }, [dias.length]);
-
-  return (
-    <div className="space-y-4">
-      {/* Dias */}
-      <div>
-        <span className="mb-2 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Escolha o dia
-        </span>
-        <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-          {diasDisponiveis.map((d, i) => {
-            const ativo = i === diaAtivo;
-            const ehHojeBtn = mesmoDia(d, new Date());
-            const isCustom = dataCustom && i === dias.length;
-            return (
-              <button
-                key={i}
-                type="button"
-                onClick={() => setDiaAtivo(i)}
-                className={`flex min-w-[68px] flex-col items-center gap-0.5 rounded-2xl border px-3 py-2.5 text-sm transition ${
-                  ativo
-                    ? "border-primary bg-primary text-primary-foreground shadow-sm"
-                    : "border-border/70 bg-card hover:border-primary/50 hover:bg-muted"
-                }`}
-              >
-                <span className="text-[10px] font-semibold uppercase tracking-wide opacity-80">
-                  {ehHojeBtn ? "Hoje" : DIAS_SEMANA_CURTO[d.getDay()]}
-                </span>
-                <span className="text-lg font-bold leading-none">{d.getDate()}</span>
-                <span className="text-[10px] opacity-70">
-                  {MESES_CURTO[d.getMonth()]}
-                  {isCustom ? " ✦" : ""}
-                </span>
-              </button>
-            );
-          })}
-
-          {/* Botão "outra data" */}
-          <button
-            type="button"
-            onClick={() => setMostrarCustom((v) => !v)}
-            className="flex min-w-[68px] flex-col items-center justify-center gap-0.5 rounded-2xl border border-dashed border-border px-3 py-2.5 text-xs font-medium text-muted-foreground hover:border-primary hover:text-primary transition"
-          >
-            <span className="text-lg leading-none">+</span>
-            <span className="leading-tight text-center">Outra<br/>data</span>
-          </button>
-        </div>
-
-        {mostrarCustom && (
-          <div className="mt-3 rounded-xl border border-border/70 bg-muted/30 p-3">
-            <label className="block text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
-              Escolha qualquer data
-            </label>
-            <input
-              type="date"
-              min={minCustomISO}
-              className="input"
-              onChange={(e) => aplicarDataCustom(e.target.value)}
-            />
-            <p className="mt-1.5 text-xs text-muted-foreground">
-              Para os próximos 7 dias, use os botões acima.
-            </p>
-          </div>
-        )}
-      </div>
-
-      {/* Slots de horário */}
-      <div>
-        <div className="mb-2 flex items-center justify-between">
-          <span className="block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Escolha o turno
-          </span>
-          {ehHoje && (
-            <span className="text-[10px] text-muted-foreground">
-              Turnos com início a menos de {BUFFER_MIN_MESMO_DIA} min ficam indisponíveis
-            </span>
-          )}
-        </div>
-        <div className="rounded-xl border border-border/60 bg-background/40 p-2">
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-            {SLOTS_HORARIO.map((slot) => {
-              const indisponivel = ehHoje && slot.minutosDoDia < minMinutosHoje;
-              const selecionado =
-                selecao.diaIdx === diaAtivo && selecao.minutos === slot.minutosDoDia;
-              return (
-                <button
-                  key={slot.minutosDoDia}
-                  type="button"
-                  disabled={indisponivel}
-                  onClick={() => escolher(diaAtivo, slot.minutosDoDia)}
-                  className={`rounded-lg border px-3 py-2.5 text-sm font-semibold transition ${
-
-                    selecionado
-                      ? "border-warm bg-warm text-white shadow"
-                      : indisponivel
-                        ? "border-border/40 bg-muted/40 text-muted-foreground/50 line-through cursor-not-allowed"
-                        : "border-border/70 bg-card hover:border-warm/60 hover:bg-muted"
-                  }`}
-                >
-                  {slot.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-        {ehHoje && SLOTS_HORARIO.every((s) => s.minutosDoDia < minMinutosHoje) && (
-          <p className="mt-2 text-xs text-destructive">
-            Não há mais horários disponíveis hoje. Escolha outro dia.
-          </p>
-        )}
-      </div>
-
-      {value && (
-        <div className="rounded-lg bg-primary/10 px-3 py-2 text-sm text-primary">
-          ✔ Entrega agendada para{" "}
-          <strong>
-            {diasDisponiveis[diaAtivo]?.toLocaleDateString("pt-BR", {
-              weekday: "long",
-              day: "2-digit",
-              month: "long",
-            })}
-          </strong>{" "}
-          no turno{" "}
-          <strong>
-            {SLOTS_HORARIO.find((s) => s.minutosDoDia === selecao.minutos)?.label ??
-              `${new Date(value).getHours().toString().padStart(2, "0")}h`}
-          </strong>
-
-        </div>
-      )}
-    </div>
-  );
-}
-
