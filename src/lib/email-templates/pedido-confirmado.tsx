@@ -41,6 +41,7 @@ interface Props {
     cep: string
   }
   observacoes?: string | null
+  tracking_url?: string | null
 }
 
 const brl = (v: number) =>
