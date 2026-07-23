@@ -600,10 +600,14 @@ function enviarEmailConfirmacao(params: {
   horarioEntrega: string;
   endereco: EnderecoInput;
   observacoes?: string | null;
+  userId?: string | null;
 }) {
   void (async () => {
     try {
       const { sendTemplateEmail } = await import("@/lib/email-templates/send-email");
+      const trackingUrl = params.userId
+        ? null
+        : `${getPublicAppUrl()}/pedido/${params.pedidoId}`;
       await sendTemplateEmail("pedido-confirmado", params.cliente.email, {
         idempotencyKey: `pedido-confirmado-${params.pedidoId}`,
         templateData: {
@@ -616,6 +620,7 @@ function enviarEmailConfirmacao(params: {
           horario_entrega: params.horarioEntrega,
           endereco: params.endereco,
           observacoes: params.observacoes,
+          tracking_url: trackingUrl,
         },
       });
     } catch (error) {
