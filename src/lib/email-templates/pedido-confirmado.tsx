@@ -73,6 +73,7 @@ const Email = ({
   horario_entrega,
   endereco,
   observacoes,
+  tracking_url,
 }: Props) => (
   <Html lang="pt-BR" dir="ltr">
     <Head />
