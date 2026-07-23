@@ -306,6 +306,7 @@ export async function criarCheckoutMercadoPago(data: CriarCheckoutInput) {
     horarioEntrega: data.horario_entrega,
     endereco: data.endereco,
     observacoes: data.observacoes,
+    userId: data.user_id,
   });
 
   return {
@@ -378,6 +379,7 @@ export async function criarPagamentoPixMP(data: CriarPedidoInput) {
     horarioEntrega: data.horario_entrega,
     endereco: data.endereco,
     observacoes: data.observacoes,
+    userId: data.user_id,
   });
 
   return {
@@ -579,6 +581,7 @@ export async function criarPagamentoCartaoMP(
     horarioEntrega: data.horario_entrega,
     endereco: data.endereco,
     observacoes: data.observacoes,
+    userId: data.user_id,
   });
 
   return {
