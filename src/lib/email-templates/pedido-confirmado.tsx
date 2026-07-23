@@ -225,3 +225,14 @@ const totalLabelBold = { color: '#1f5d3a', fontSize: '16px', fontWeight: 700 }
 const totalValueBold = { textAlign: 'right' as const, color: '#c45a1a', fontSize: '18px', fontWeight: 700 }
 const footer = { textAlign: 'center' as const, padding: '16px 0 0 0' }
 const footerText = { color: '#6b7565', fontSize: '12px', lineHeight: '18px', margin: 0 }
+const trackingBtn = {
+  display: 'inline-block',
+  backgroundColor: '#1f5d3a',
+  color: '#ffffff',
+  padding: '10px 18px',
+  borderRadius: '999px',
+  fontSize: '13px',
+  fontWeight: 600,
+  textDecoration: 'none',
+  marginTop: '8px',
+}
