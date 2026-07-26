@@ -151,8 +151,11 @@ async function buscarProdutos(supa: SupabaseAdmin, itens: CheckoutItem[]) {
  * Cria cliente + endereço + pedido + itens no banco.
  * Retorna dados calculados no servidor a partir da tabela `produtos`.
  * Usado por todos os fluxos de pagamento (Checkout Pro, Pix nativo e Cartão).
+ *
+ * Exportado para permitir cobertura por testes de integração — a lógica de
+ * chamadas deve continuar passando por um dos três fluxos de pagamento.
  */
-async function criarPedidoBase(input: CriarPedidoInput) {
+export async function criarPedidoBase(input: CriarPedidoInput) {
   const { supabaseAdmin: supa } = await import("@/integrations/supabase/client.server");
   const { calcularItensPedido } = await import("@/lib/mercadopago-pure");
   const area = await buscarAreaEntrega(supa, input.endereco.cep);
@@ -218,6 +221,8 @@ async function criarPedidoBase(input: CriarPedidoInput) {
   };
 }
 
+type PedidoBase = Awaited<ReturnType<typeof criarPedidoBase>>;
+
 function payerFromCliente(cliente: ClienteInput, cpf: string) {
   const partes = cliente.nome.trim().split(/\s+/);
   const first_name = partes.shift() ?? cliente.nome;
@@ -233,6 +238,26 @@ function payerFromCliente(cliente: ClienteInput, cpf: string) {
     ...(telDigits ? { phone: { area_code, number } } : {}),
   };
 }
+
+/**
+ * Dispara o e-mail de confirmação a partir do resultado de `criarPedidoBase`
+ * e do input original. Chamado UMA vez por fluxo de pagamento após sucesso.
+ */
+function notificarClientePedido(base: PedidoBase, input: CriarPedidoInput) {
+  enviarEmailConfirmacao({
+    pedidoId: base.pedidoId,
+    cliente: input.cliente,
+    itens: base.itensCalc,
+    subtotal: base.subtotal,
+    taxaEntrega: base.taxaEntrega,
+    valorTotal: base.valorTotal,
+    horarioEntrega: input.horario_entrega,
+    endereco: input.endereco,
+    observacoes: input.observacoes,
+    userId: input.user_id,
+  });
+}
+
 
 /* ============================================================
  * Fluxo 1: Checkout Pro (redirect) — mantido para retrocompat.
