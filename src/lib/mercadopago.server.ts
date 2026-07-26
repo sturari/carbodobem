@@ -343,6 +343,7 @@ export async function criarPagamentoPixMP(data: CriarPedidoInput) {
   const { accessToken } = getMercadoPagoConfig();
   const base = await criarPedidoBase(data);
   const publicUrl = getPublicAppUrl();
+  const payer = payerFromCliente(data.cliente, base.cpfCliente);
 
   const body = {
     transaction_amount: Number(base.valorTotal.toFixed(2)),
@@ -353,9 +354,9 @@ export async function criarPagamentoPixMP(data: CriarPedidoInput) {
     statement_descriptor: "CARBO DO BEM",
     payer: {
       email: data.cliente.email,
-      first_name: payerFromCliente(data.cliente, base.cpfCliente).first_name,
-      last_name: payerFromCliente(data.cliente, base.cpfCliente).last_name,
-      identification: { type: "CPF", number: base.cpfCliente },
+      first_name: payer.first_name,
+      last_name: payer.last_name,
+      identification: payer.identification,
     },
   };
 
@@ -385,18 +386,8 @@ export async function criarPagamentoPixMP(data: CriarPedidoInput) {
     .update({ mercadopago_payment_id: String(payment.id) })
     .eq("id", base.pedidoId);
 
-  enviarEmailConfirmacao({
-    pedidoId: base.pedidoId,
-    cliente: data.cliente,
-    itens: base.itensCalc,
-    subtotal: base.subtotal,
-    taxaEntrega: base.taxaEntrega,
-    valorTotal: base.valorTotal,
-    horarioEntrega: data.horario_entrega,
-    endereco: data.endereco,
-    observacoes: data.observacoes,
-    userId: data.user_id,
-  });
+  notificarClientePedido(base, data);
+
 
   return {
     pedido_id: base.pedidoId,
