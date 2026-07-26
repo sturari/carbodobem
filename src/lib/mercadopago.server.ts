@@ -268,6 +268,7 @@ export async function criarCheckoutMercadoPago(data: CriarCheckoutInput) {
 
   const base = await criarPedidoBase(data);
 
+  const payer = payerFromCliente(data.cliente, base.cpfCliente);
   const preferenceBody = {
     items: base.itensCalc.map((item) => ({
       id: item.produto_id,
@@ -278,7 +279,7 @@ export async function criarCheckoutMercadoPago(data: CriarCheckoutInput) {
     })),
     payer: {
       name: data.cliente.nome,
-      ...payerFromCliente(data.cliente, base.cpfCliente),
+      ...payer,
     },
     external_reference: base.pedidoId,
     back_urls: {
@@ -321,18 +322,8 @@ export async function criarCheckoutMercadoPago(data: CriarCheckoutInput) {
     .update({ mercadopago_preference_id: preference.id })
     .eq("id", base.pedidoId);
 
-  enviarEmailConfirmacao({
-    pedidoId: base.pedidoId,
-    cliente: data.cliente,
-    itens: base.itensCalc,
-    subtotal: base.subtotal,
-    taxaEntrega: base.taxaEntrega,
-    valorTotal: base.valorTotal,
-    horarioEntrega: data.horario_entrega,
-    endereco: data.endereco,
-    observacoes: data.observacoes,
-    userId: data.user_id,
-  });
+  notificarClientePedido(base, data);
+
 
   return {
     pedido_id: base.pedidoId,
