@@ -532,6 +532,7 @@ export async function criarPagamentoCartaoMP(
   }
   const valorCobrado = totalComJuros(base.valorTotal, installments);
 
+  const payer = payerFromCliente(data.cliente, base.cpfCliente);
   const body: Record<string, unknown> = {
     transaction_amount: Number(valorCobrado.toFixed(2)),
     description: `Pedido ${base.pedidoId}`,
@@ -543,7 +544,7 @@ export async function criarPagamentoCartaoMP(
     statement_descriptor: "CARBO DO BEM",
     payer: {
       email: data.cliente.email,
-      identification: { type: "CPF", number: base.cpfCliente },
+      identification: payer.identification,
     },
   };
   if (data.cartao.issuer_id) body.issuer_id = data.cartao.issuer_id;
@@ -578,18 +579,8 @@ export async function criarPagamentoCartaoMP(
     })
     .eq("id", base.pedidoId);
 
-  enviarEmailConfirmacao({
-    pedidoId: base.pedidoId,
-    cliente: data.cliente,
-    itens: base.itensCalc,
-    subtotal: base.subtotal,
-    taxaEntrega: base.taxaEntrega,
-    valorTotal: base.valorTotal,
-    horarioEntrega: data.horario_entrega,
-    endereco: data.endereco,
-    observacoes: data.observacoes,
-    userId: data.user_id,
-  });
+  notificarClientePedido(base, data);
+
 
   return {
     pedido_id: base.pedidoId,
