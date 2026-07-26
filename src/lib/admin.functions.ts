@@ -158,6 +158,8 @@ export const criarProduto = createServerFn({ method: "POST" })
       .select()
       .single();
     if (error) throw new Error(error.message);
+    const { invalidarCacheProdutos } = await import("@/lib/produtos.functions");
+    invalidarCacheProdutos();
     return row;
   });
 
@@ -180,8 +182,11 @@ export const atualizarProduto = createServerFn({ method: "POST" })
       .select()
       .single();
     if (error) throw new Error(error.message);
+    const { invalidarCacheProdutos } = await import("@/lib/produtos.functions");
+    invalidarCacheProdutos();
     return row;
   });
+
 
 // ============ REEMBOLSO ============
 

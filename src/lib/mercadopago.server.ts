@@ -151,8 +151,11 @@ async function buscarProdutos(supa: SupabaseAdmin, itens: CheckoutItem[]) {
  * Cria cliente + endereço + pedido + itens no banco.
  * Retorna dados calculados no servidor a partir da tabela `produtos`.
  * Usado por todos os fluxos de pagamento (Checkout Pro, Pix nativo e Cartão).
+ *
+ * Exportado para permitir cobertura por testes de integração — a lógica de
+ * chamadas deve continuar passando por um dos três fluxos de pagamento.
  */
-async function criarPedidoBase(input: CriarPedidoInput) {
+export async function criarPedidoBase(input: CriarPedidoInput) {
   const { supabaseAdmin: supa } = await import("@/integrations/supabase/client.server");
   const { calcularItensPedido } = await import("@/lib/mercadopago-pure");
   const area = await buscarAreaEntrega(supa, input.endereco.cep);
@@ -218,6 +221,8 @@ async function criarPedidoBase(input: CriarPedidoInput) {
   };
 }
 
+type PedidoBase = Awaited<ReturnType<typeof criarPedidoBase>>;
+
 function payerFromCliente(cliente: ClienteInput, cpf: string) {
   const partes = cliente.nome.trim().split(/\s+/);
   const first_name = partes.shift() ?? cliente.nome;
@@ -234,6 +239,26 @@ function payerFromCliente(cliente: ClienteInput, cpf: string) {
   };
 }
 
+/**
+ * Dispara o e-mail de confirmação a partir do resultado de `criarPedidoBase`
+ * e do input original. Chamado UMA vez por fluxo de pagamento após sucesso.
+ */
+function notificarClientePedido(base: PedidoBase, input: CriarPedidoInput) {
+  enviarEmailConfirmacao({
+    pedidoId: base.pedidoId,
+    cliente: input.cliente,
+    itens: base.itensCalc,
+    subtotal: base.subtotal,
+    taxaEntrega: base.taxaEntrega,
+    valorTotal: base.valorTotal,
+    horarioEntrega: input.horario_entrega,
+    endereco: input.endereco,
+    observacoes: input.observacoes,
+    userId: input.user_id,
+  });
+}
+
+
 /* ============================================================
  * Fluxo 1: Checkout Pro (redirect) — mantido para retrocompat.
  * ============================================================ */
@@ -243,6 +268,7 @@ export async function criarCheckoutMercadoPago(data: CriarCheckoutInput) {
 
   const base = await criarPedidoBase(data);
 
+  const payer = payerFromCliente(data.cliente, base.cpfCliente);
   const preferenceBody = {
     items: base.itensCalc.map((item) => ({
       id: item.produto_id,
@@ -253,7 +279,7 @@ export async function criarCheckoutMercadoPago(data: CriarCheckoutInput) {
     })),
     payer: {
       name: data.cliente.nome,
-      ...payerFromCliente(data.cliente, base.cpfCliente),
+      ...payer,
     },
     external_reference: base.pedidoId,
     back_urls: {
@@ -296,18 +322,8 @@ export async function criarCheckoutMercadoPago(data: CriarCheckoutInput) {
     .update({ mercadopago_preference_id: preference.id })
     .eq("id", base.pedidoId);
 
-  enviarEmailConfirmacao({
-    pedidoId: base.pedidoId,
-    cliente: data.cliente,
-    itens: base.itensCalc,
-    subtotal: base.subtotal,
-    taxaEntrega: base.taxaEntrega,
-    valorTotal: base.valorTotal,
-    horarioEntrega: data.horario_entrega,
-    endereco: data.endereco,
-    observacoes: data.observacoes,
-    userId: data.user_id,
-  });
+  notificarClientePedido(base, data);
+
 
   return {
     pedido_id: base.pedidoId,
@@ -327,6 +343,7 @@ export async function criarPagamentoPixMP(data: CriarPedidoInput) {
   const { accessToken } = getMercadoPagoConfig();
   const base = await criarPedidoBase(data);
   const publicUrl = getPublicAppUrl();
+  const payer = payerFromCliente(data.cliente, base.cpfCliente);
 
   const body = {
     transaction_amount: Number(base.valorTotal.toFixed(2)),
@@ -337,9 +354,9 @@ export async function criarPagamentoPixMP(data: CriarPedidoInput) {
     statement_descriptor: "CARBO DO BEM",
     payer: {
       email: data.cliente.email,
-      first_name: payerFromCliente(data.cliente, base.cpfCliente).first_name,
-      last_name: payerFromCliente(data.cliente, base.cpfCliente).last_name,
-      identification: { type: "CPF", number: base.cpfCliente },
+      first_name: payer.first_name,
+      last_name: payer.last_name,
+      identification: payer.identification,
     },
   };
 
@@ -369,18 +386,8 @@ export async function criarPagamentoPixMP(data: CriarPedidoInput) {
     .update({ mercadopago_payment_id: String(payment.id) })
     .eq("id", base.pedidoId);
 
-  enviarEmailConfirmacao({
-    pedidoId: base.pedidoId,
-    cliente: data.cliente,
-    itens: base.itensCalc,
-    subtotal: base.subtotal,
-    taxaEntrega: base.taxaEntrega,
-    valorTotal: base.valorTotal,
-    horarioEntrega: data.horario_entrega,
-    endereco: data.endereco,
-    observacoes: data.observacoes,
-    userId: data.user_id,
-  });
+  notificarClientePedido(base, data);
+
 
   return {
     pedido_id: base.pedidoId,
@@ -525,6 +532,7 @@ export async function criarPagamentoCartaoMP(
   }
   const valorCobrado = totalComJuros(base.valorTotal, installments);
 
+  const payer = payerFromCliente(data.cliente, base.cpfCliente);
   const body: Record<string, unknown> = {
     transaction_amount: Number(valorCobrado.toFixed(2)),
     description: `Pedido ${base.pedidoId}`,
@@ -536,7 +544,7 @@ export async function criarPagamentoCartaoMP(
     statement_descriptor: "CARBO DO BEM",
     payer: {
       email: data.cliente.email,
-      identification: { type: "CPF", number: base.cpfCliente },
+      identification: payer.identification,
     },
   };
   if (data.cartao.issuer_id) body.issuer_id = data.cartao.issuer_id;
@@ -571,18 +579,8 @@ export async function criarPagamentoCartaoMP(
     })
     .eq("id", base.pedidoId);
 
-  enviarEmailConfirmacao({
-    pedidoId: base.pedidoId,
-    cliente: data.cliente,
-    itens: base.itensCalc,
-    subtotal: base.subtotal,
-    taxaEntrega: base.taxaEntrega,
-    valorTotal: base.valorTotal,
-    horarioEntrega: data.horario_entrega,
-    endereco: data.endereco,
-    observacoes: data.observacoes,
-    userId: data.user_id,
-  });
+  notificarClientePedido(base, data);
+
 
   return {
     pedido_id: base.pedidoId,
