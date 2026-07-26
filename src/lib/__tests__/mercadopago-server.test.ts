@@ -121,7 +121,7 @@ const baseInput = {
   horario_entrega: "hoje 09:00-12:00",
   itens: [{ produto_id: "p1", quantidade: 2 }],
   observacoes: null,
-} as const;
+};
 
 describe("criarPedidoBase", () => {
   beforeEach(() => {
