@@ -432,16 +432,16 @@ function FluxoPix({
         <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Ou use o código copia-e-cola
         </label>
-        <div className="flex gap-2">
+        <div className="flex flex-col gap-2 sm:flex-row">
           <textarea
             readOnly
             value={pix.qr_code}
-            className="input flex-1 min-h-[72px] text-xs font-mono"
+            className="input min-w-0 flex-1 min-h-[72px] text-xs font-mono break-all"
           />
           <button
             type="button"
             onClick={copiar}
-            className="inline-flex items-center gap-1.5 self-start rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground"
+            className="inline-flex items-center justify-center gap-1.5 self-stretch shrink-0 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground sm:self-start"
           >
             {copiado ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
             {copiado ? "Copiado" : "Copiar"}
