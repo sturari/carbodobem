@@ -812,7 +812,7 @@ function FluxoCartao({
         </div>
       )}
 
-      <div className="flex items-center justify-between pt-2">
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
         <button
           type="button"
           onClick={onVoltar}
@@ -825,7 +825,7 @@ function FluxoCartao({
           type="button"
           onClick={pagar}
           disabled={processando}
-          className="inline-flex items-center gap-2 rounded-full bg-warm px-6 py-2.5 font-bold text-white shadow-lg disabled:opacity-60"
+          className="inline-flex flex-1 sm:flex-none items-center justify-center gap-2 rounded-full bg-warm px-5 py-2.5 text-sm sm:text-base font-bold text-white shadow-lg disabled:opacity-60"
         >
           {processando && <Loader2 className="h-4 w-4 animate-spin" />}
           {processando ? "Processando…" : `Pagar ${formatBRL(valorCobrado)}`}
