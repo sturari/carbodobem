@@ -166,7 +166,7 @@ function CheckoutPage() {
   const totalComFrete = total + (taxaEntrega ?? 0);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen overflow-x-hidden bg-background">
       <div className="mx-auto max-w-3xl px-4 py-8">
         <div className="mb-6 flex items-center gap-3">
           <Link to="/" className="rounded-full p-2 hover:bg-muted">
