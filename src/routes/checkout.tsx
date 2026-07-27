@@ -178,7 +178,7 @@ function CheckoutPage() {
         <Stepper etapa={etapa} />
 
         <div className="mt-6 grid gap-6 md:grid-cols-[1fr_320px]">
-          <div className="rounded-2xl border border-border/70 bg-card p-6 shadow-sm">
+          <div className="rounded-2xl border border-border/70 bg-card p-4 shadow-sm sm:p-6">
             {etapa === 1 && (
               <div className="space-y-4">
                 <h2 className="font-display text-lg font-bold">Seus dados</h2>
