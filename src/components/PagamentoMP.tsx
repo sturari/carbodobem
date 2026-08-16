@@ -151,18 +151,21 @@ export function PagamentoMP({ dados, valorTotal, onCriado }: Props) {
               titulo="Pix"
               descricao="QR code ou copia-e-cola. Aprovação na hora."
               onClick={() => setMetodo("pix")}
+              disabled={!!pedidoAtivo}
             />
             <MetodoBtn
               icon={<CreditCard className="h-5 w-5" />}
               titulo="Cartão de crédito"
               descricao="Preencha os dados aqui, sem redirecionamento."
               onClick={() => setMetodo("cartao")}
+              disabled={!!pedidoAtivo}
             />
             <MetodoBtn
               icon={<ExternalLink className="h-5 w-5" />}
               titulo="Outras opções (Mercado Pago)"
               descricao="Boleto, débito, saldo MP — abre no site do Mercado Pago."
               onClick={() => setMetodo("redirect")}
+              disabled={!!pedidoAtivo}
             />
           </div>
         </>
