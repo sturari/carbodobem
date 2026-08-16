@@ -10,6 +10,7 @@ import {
   obterMercadoPagoPublicKey,
   regerarPagamentoPix,
 } from "@/lib/mercadopago.functions";
+import { toast } from "sonner";
 import { formatBRL } from "@/lib/format";
 import {
   calcularOpcoesParcelas,
@@ -150,18 +151,21 @@ export function PagamentoMP({ dados, valorTotal, onCriado }: Props) {
               titulo="Pix"
               descricao="QR code ou copia-e-cola. Aprovação na hora."
               onClick={() => setMetodo("pix")}
+              disabled={!!pedidoAtivo}
             />
             <MetodoBtn
               icon={<CreditCard className="h-5 w-5" />}
               titulo="Cartão de crédito"
               descricao="Preencha os dados aqui, sem redirecionamento."
               onClick={() => setMetodo("cartao")}
+              disabled={!!pedidoAtivo}
             />
             <MetodoBtn
               icon={<ExternalLink className="h-5 w-5" />}
               titulo="Outras opções (Mercado Pago)"
               descricao="Boleto, débito, saldo MP — abre no site do Mercado Pago."
               onClick={() => setMetodo("redirect")}
+              disabled={!!pedidoAtivo}
             />
           </div>
         </>
@@ -210,17 +214,20 @@ function MetodoBtn({
   titulo,
   descricao,
   onClick,
+  disabled,
 }: {
   icon: React.ReactNode;
   titulo: string;
   descricao: string;
   onClick: () => void;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="flex items-center gap-3 rounded-xl border border-border/70 bg-card p-4 text-left transition hover:border-primary hover:bg-muted"
+      disabled={disabled}
+      className="flex items-center gap-3 rounded-xl border border-border/70 bg-card p-4 text-left transition hover:border-primary hover:bg-muted disabled:pointer-events-none disabled:opacity-50"
     >
       <div className="text-primary">{icon}</div>
       <div className="flex-1">
@@ -325,13 +332,16 @@ function FluxoPix({
   }, [pix, status]);
 
   async function copiar() {
-    if (!pix) return;
+    if (!pix || copiado) return;
     try {
       await navigator.clipboard.writeText(pix.qr_code);
       setCopiado(true);
-      setTimeout(() => setCopiado(false), 2000);
+      toast.success("Código Pix copiado!", {
+        description: "Cole no app do seu banco para pagar.",
+      });
+      setTimeout(() => setCopiado(false), 4000);
     } catch {
-      /* ignore */
+      toast.error("Não foi possível copiar. Selecione o código manualmente.");
     }
   }
 
@@ -441,7 +451,9 @@ function FluxoPix({
           <button
             type="button"
             onClick={copiar}
-            className="inline-flex items-center justify-center gap-1.5 self-stretch shrink-0 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground sm:self-start"
+            disabled={copiado}
+            aria-live="polite"
+            className="inline-flex items-center justify-center gap-1.5 self-stretch shrink-0 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition disabled:opacity-60 sm:self-start"
           >
             {copiado ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
             {copiado ? "Copiado" : "Copiar"}
@@ -724,6 +736,7 @@ function FluxoCartao({
             autoComplete="cc-number"
             placeholder="0000 0000 0000 0000"
             value={numero}
+            disabled={processando}
             onChange={(e) => setNumero(formatarNumero(e.target.value))}
           />
           {bandeira?.secure_thumbnail || bandeira?.thumbnail ? (
@@ -746,6 +759,7 @@ function FluxoCartao({
           autoComplete="cc-name"
           placeholder="COMO ESTÁ NO CARTÃO"
           value={nome}
+          disabled={processando}
           onChange={(e) => setNome(e.target.value.toUpperCase())}
         />
       </label>
@@ -761,6 +775,7 @@ function FluxoCartao({
             autoComplete="cc-exp"
             placeholder="MM/AA"
             value={validade}
+            disabled={processando}
             onChange={(e) => setValidade(formatarValidade(e.target.value))}
           />
         </label>
@@ -775,6 +790,7 @@ function FluxoCartao({
             placeholder="123"
             maxLength={4}
             value={cvv}
+            disabled={processando}
             onChange={(e) => setCvv(e.target.value.replace(/\D/g, ""))}
           />
         </label>
@@ -787,6 +803,7 @@ function FluxoCartao({
         <select
           className="input"
           value={parcelas}
+          disabled={processando}
           onChange={(e) => setParcelas(Number(e.target.value))}
         >
           {opcoesParcelas.map((op) => (
@@ -825,7 +842,23 @@ function FluxoCartao({
           type="button"
           onClick={pagar}
           disabled={processando}
-          className="inline-flex flex-1 sm:flex-none items-center justify-center gap-2 rounded-full bg-warm px-5 py-2.5 text-sm sm:text-base font-bold text-white shadow-lg disabled:opacity-60"
+          className="hidden sm:inline-flex items-center justify-center gap-2 rounded-full bg-warm px-5 py-2.5 text-base font-bold text-white shadow-lg disabled:opacity-60"
+        >
+          {processando && <Loader2 className="h-4 w-4 animate-spin" />}
+          {processando ? "Processando…" : `Pagar ${formatBRL(valorCobrado)}`}
+        </button>
+      </div>
+
+      {/* Espaço para a barra fixa do mobile não cobrir o conteúdo */}
+      <div className="h-20 sm:hidden" aria-hidden />
+
+      {/* Barra de pagamento fixa no mobile */}
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border/70 bg-background/95 px-4 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3 backdrop-blur sm:hidden">
+        <button
+          type="button"
+          onClick={pagar}
+          disabled={processando}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-warm px-5 py-3 text-sm font-bold text-white shadow-lg disabled:opacity-60"
         >
           {processando && <Loader2 className="h-4 w-4 animate-spin" />}
           {processando ? "Processando…" : `Pagar ${formatBRL(valorCobrado)}`}
@@ -902,7 +935,11 @@ function FluxoRedirect({
         </a>
       )}
       <div className="flex items-center justify-between pt-2">
-        <button onClick={onVoltar} className="text-xs text-muted-foreground underline">
+        <button
+          onClick={onVoltar}
+          disabled={carregando}
+          className="text-xs text-muted-foreground underline disabled:opacity-50"
+        >
           ← Outro método
         </button>
         <button
