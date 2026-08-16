@@ -935,7 +935,11 @@ function FluxoRedirect({
         </a>
       )}
       <div className="flex items-center justify-between pt-2">
-        <button onClick={onVoltar} className="text-xs text-muted-foreground underline">
+        <button
+          onClick={onVoltar}
+          disabled={carregando}
+          className="text-xs text-muted-foreground underline disabled:opacity-50"
+        >
           ← Outro método
         </button>
         <button
