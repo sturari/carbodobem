@@ -106,6 +106,8 @@ function PedidoConvidadoPage() {
               </p>
             )}
 
+            <ReenviarConfirmacao pedidoId={p.id} />
+
             <div className="mt-6 rounded-xl bg-primary/5 p-4 text-sm">
               <p className="font-semibold">Quer acompanhar mais fácil da próxima vez?</p>
               <p className="mt-1 text-muted-foreground">
