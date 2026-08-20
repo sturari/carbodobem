@@ -10,7 +10,7 @@ import { Stepper, type EtapaCheckout } from "@/components/checkout/Stepper";
 import { SeletorHorario } from "@/components/checkout/SeletorHorario";
 import { useCheckoutForm } from "@/hooks/use-checkout-form";
 
-export const Route = createFileRoute("/checkout")({
+export const Route = createFileRoute("/checkout/")({
   component: CheckoutPage,
 });
 
