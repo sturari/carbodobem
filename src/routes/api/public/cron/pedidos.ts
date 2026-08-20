@@ -27,6 +27,7 @@ export const Route = createFileRoute("/api/public/cron/pedidos")({
           reconciliar?: boolean;
           expirar?: boolean;
           horasExpiracao?: number;
+          horasReconciliacao?: number;
         } = {};
         try {
           body = (await request.json()) as typeof body;
@@ -42,6 +43,12 @@ export const Route = createFileRoute("/api/public/cron/pedidos")({
           body.horasExpiracao <= 24 * 30
             ? body.horasExpiracao
             : 24;
+        const horasReconciliacao =
+          typeof body.horasReconciliacao === "number" &&
+          body.horasReconciliacao >= 1 &&
+          body.horasReconciliacao <= 24 * 365
+            ? body.horasReconciliacao
+            : 24 * 30;
 
         const { reconciliarPedidosPendentes, expirarPedidosPendentes } = await import(
           "@/lib/manutencao-pedidos.server"
