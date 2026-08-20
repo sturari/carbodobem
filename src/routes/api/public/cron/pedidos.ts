@@ -57,7 +57,9 @@ export const Route = createFileRoute("/api/public/cron/pedidos")({
         const resultado: Record<string, unknown> = {};
         try {
           if (fazerReconciliar) {
-            resultado.reconciliacao = await reconciliarPedidosPendentes();
+            resultado.reconciliacao = await reconciliarPedidosPendentes({
+              horas: horasReconciliacao,
+            });
           }
           if (fazerExpirar) {
             resultado.expiracao = await expirarPedidosPendentes({ horas: horasExpiracao });
