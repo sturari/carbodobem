@@ -1,61 +1,61 @@
-Plano para resolver o pagamento de vez mantendo Mercado Pago
+# Auditoria completa + próximos passos para fechar o desenvolvimento
 
-Problemas encontrados
-- O botão Pagar hoje faz duas estratégias ao mesmo tempo: abre uma aba `about:blank` antecipada e, se algo falha no handle do popup, tenta redirecionar também a visualização. Isso explica a aba vazia + tentativa dentro do preview.
-- O atalho `/checkout?dev=1` causa erro de hidratação: no servidor aparece “carrinho vazio”, mas no cliente o item é injetado depois. Isso pode bagunçar estado, totais e chamadas com `itens` vazio.
-- O fluxo está dividido em duas chamadas separadas: primeiro cria pedido, depois cria preferência MP usando dados do carrinho no frontend. Se o carrinho limpar, hidratar errado ou ficar vazio, a preferência/pedido fica inconsistente.
-- O banco mostra 9 pedidos `pendente`, 8 com `mercadopago_preference_id` e 0 com `mercadopago_payment_id`. Ou seja: as preferências são criadas, mas nenhum pagamento aprovado está atualizando o pedido.
-- A URL pública usada no Mercado Pago está fixa para um domínio `.lovable.app`, enquanto os testes estão acontecendo em outro host/preview. Isso pode atrapalhar `back_urls` e `notification_url` durante testes.
-- O webhook exige assinatura válida. Isso é bom para produção, mas pode estar rejeitando notificações se o segredo configurado no Mercado Pago não for exatamente o mesmo, se o webhook do checkout sandbox não estiver usando esse segredo, ou se o evento recebido tiver formato diferente.
-- A página de sucesso assume `approved` como padrão quando não recebe status, podendo mostrar “Pedido recebido” mesmo antes do webhook confirmar pagamento.
-- O envio de e-mail está falhando por domínio não verificado, mas não bloqueia o pedido; é ruído nos logs, não parece ser a causa principal do pagamento.
+Testei todas as rotas no navegador, rodei a suíte de testes e consultei o banco. Abaixo o que está funcionando, o que está quebrado e a ordem de execução.
 
-O que vou reconstruir
+## O que testei e está OK
+- Home, /auth, /privacidade, /termos, /admin (redireciona para login), /checkout (carrinho vazio) carregam com status 200, sem erros de console e sem requisições falhando.
+- Atalho `/checkout?dev=1` funciona: chega no passo de horário com turnos (09-12, 12-15, 15-18) e regra de 45 min.
+- Suíte de testes: 21 testes passando (cálculo de pedido, estoque, cobertura de CEP, assinatura do webhook).
+- Banco: 12 produtos ativos, nenhum com estoque zero, 6 áreas de cobertura ativas, 1 admin cadastrado.
 
-1. Criar um fluxo único de pagamento
-- Trocar o par `criarPedido` + `criarPreferenciaMP` por uma função única de checkout.
-- Essa função vai receber os dados do checkout, validar tudo no servidor, criar o pedido, buscar preços reais no banco e criar a preferência no Mercado Pago na mesma operação lógica.
-- O frontend não vai mais enviar preço para o Mercado Pago; só produto/quantidade. O servidor será a fonte da verdade.
+## Problemas confirmados (em ordem de gravidade)
 
-2. Remover a abertura antecipada de `about:blank`
-- O clique em Pagar não abrirá mais uma aba vazia.
-- Depois que o Mercado Pago retornar a URL, o app fará uma destas ações:
-  - em produção: redirecionar a janela atual para o Mercado Pago;
-  - no preview/iframe: mostrar um botão/link real “Abrir Mercado Pago” já com a URL pronta, para abrir em nova aba sem bloqueio e sem `about:blank`.
+1. A página de sucesso do pagamento nunca aparece.
+   `/checkout/sucesso` renderiza "Carrinho vazio" em vez do status do pedido. Motivo: no roteamento, `checkout.sucesso` virou rota filha de `checkout`, e a tela de checkout não renderiza o ponto de saída para rotas filhas. Ou seja: quem volta do Mercado Pago cai numa tela de carrinho vazio, sem confirmação e sem limpar o carrinho.
 
-3. Corrigir o atalho `/checkout?dev=1`
-- Evitar renderização diferente entre servidor e cliente.
-- Garantir que o item Salmão esteja pronto antes de permitir finalizar, sem cair em `itens` vazio.
-- Manter o atalho apenas para teste no Lovable.
+2. Nenhum pedido jamais foi confirmado como pago.
+   No banco: 31 pedidos `pendente` (8 já com ID de pagamento do Mercado Pago), 1 cancelado, zero em `pagamento_confirmado`. O último pedido é de 19/07. Conclusão: o webhook não está atualizando status.
 
-4. Tornar URLs de retorno e webhook consistentes
-- Centralizar a base pública usada em `back_urls` e `notification_url`.
-- Em preview, usar a origem atual quando seguro; em produção, usar a URL pública configurada.
-- Evitar URL fixa desatualizada dentro do código.
+3. A URL usada no webhook e nos retornos aponta para um endereço que não serve o site.
+   Não existe `PUBLIC_APP_URL` configurada, então o código cai num endereço fixo `project--...lovable.app` — e o site ainda não foi publicado. O Mercado Pago não tem para onde notificar. O domínio próprio (carbodobem.com.br) também não está em uso nessa configuração.
 
-5. Fortalecer Mercado Pago sandbox/produção
-- Validar explicitamente se o token usado é sandbox ou produção e escolher `sandbox_init_point`/`init_point` de forma consistente.
-- Retornar mensagens claras quando o token estiver ausente ou incompatível.
-- Não expor tokens no frontend.
+4. `/meus-pedidos` fica em tela branca por vários segundos antes de decidir se redireciona para login. Sem estado visível de "verificando sessão" nem fallback se a sessão falhar.
 
-6. Melhorar confirmação de pagamento
-- Ajustar a página de sucesso para não assumir pagamento aprovado por padrão.
-- Se voltar do Mercado Pago com `payment_id` ou `collection_id`, consultar/confirmar status no backend e atualizar o pedido se necessário, como fallback ao webhook.
-- Manter o webhook como caminho principal para produção.
+5. 31 pedidos pendentes antigos acumulados, sem nenhuma rotina de expiração/cancelamento automático. Isso vai poluir relatórios e travar estoque na prática.
 
-7. Revisar webhook
-- Manter validação de assinatura em produção.
-- Melhorar logs e tratamento de formatos diferentes do Mercado Pago.
-- Garantir que status `approved` atualize pedido para aparecer no admin.
-- Se necessário, aceitar uma rota de fallback segura para consulta de status no retorno do checkout, sem depender apenas do webhook.
+6. Um produto sem imagem e uma categoria de teste ("teste") aparecendo no catálogo público.
 
-8. Validar ponta a ponta
-- Testar `/checkout?dev=1` com Salmão automático.
-- Testar criação de pedido/preferência.
-- Verificar que não aparece aba `about:blank`.
-- Verificar que pedido só aparece no admin depois de status aprovado.
-- Conferir logs do backend para erros de Mercado Pago e webhook.
+## Plano de execução
 
-Resultado esperado
-- Um único fluxo previsível: checkout cria pedido + preferência, usuário abre Mercado Pago, retorno/sucesso confirma status, webhook atualiza o pedido, admin mostra apenas pedidos pagos.
-- Sem popup vazio, sem carrinho vazio no dev shortcut, sem sucesso falso antes da confirmação.
+### Etapa 1 — Consertar o retorno do pagamento (bloqueante)
+- Reorganizar as rotas para que a página de sucesso deixe de ser filha do checkout (ou fazer o checkout renderizar rotas filhas), garantindo que `/checkout/sucesso` renderize de verdade.
+- Confirmar que a página lê o pedido pelo parâmetro, mostra status real (aprovado / pendente / recusado) e só esvazia o carrinho quando aprovado.
+- Teste no navegador acessando a URL com um pedido real do banco.
+
+### Etapa 2 — Fazer a confirmação de pagamento funcionar de ponta a ponta
+- Definir uma base de URL pública correta e única (domínio próprio quando publicado; preview durante testes) usada em `back_urls` e `notification_url`.
+- Publicar o site para que a URL de webhook responda.
+- Adicionar logs claros no webhook e uma rota interna de conferência que consulta o Mercado Pago pelo ID do pagamento e corrige o status do pedido — fallback caso a notificação falhe.
+- Reconciliar os 8 pedidos que já têm ID de pagamento: consultar o status real e atualizar.
+- Confirmar o segredo do webhook cadastrado no painel do Mercado Pago.
+
+### Etapa 3 — Higiene de dados e operação
+- Rotina para expirar/cancelar pedidos pendentes antigos (ex.: pendente há mais de 24h vira cancelado).
+- Remover/renomear a categoria "teste" e preencher a imagem do produto faltante.
+- Painel admin: garantir que pedidos confirmados apareçam e que reembolso/sincronização estejam visíveis com status atualizado.
+
+### Etapa 4 — Frontend restante
+- `/meus-pedidos`: estado de "verificando login" imediato, redirecionamento rápido e mensagem de erro se a sessão expirar.
+- Revisar a tela do pedido público (`/pedido/{id}`) com os mesmos estados de status.
+- Metadados por página (título/descrição/og) revisados em todas as rotas de conteúdo.
+
+### Etapa 5 — Testes automatizados dos fluxos críticos
+- Testes para: retorno do Mercado Pago (aprovado/pendente/recusado), webhook atualizando status, reemissão de Pix e parcelamento acima de R$ 200.
+- Um teste de navegador cobrindo o caminho completo: catálogo → carrinho → checkout convidado → pagamento → sucesso.
+
+## Detalhes técnicos
+- Conflito de rotas: `src/routes/checkout.tsx` não tem `<Outlet />` e `routeTree.gen.ts` já registra `CheckoutRouteWithChildren`. Renomear para uma rota irmã (`checkout-sucesso`) mantendo redirecionamento, ou adicionar layout com `Outlet`.
+- `getPublicAppUrl` em `src/lib/mercadopago.server.ts` usa fallback fixo; adicionar `PUBLIC_APP_URL` como segredo e priorizar o domínio de produção.
+- Reconciliação via `GET https://api.mercadopago.com/v1/payments/{id}` + `mapMercadoPagoStatus`, usando cliente admin do backend.
+- Expiração de pendentes: função de servidor protegida + rota `api/public` com segredo, agendada por cron.
+- Segredos já presentes: tokens e chaves públicas de teste/produção do Mercado Pago, segredo do webhook, chave de e-mail. Falta apenas `PUBLIC_APP_URL`.
