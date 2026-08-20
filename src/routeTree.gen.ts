@@ -22,6 +22,7 @@ import { Route as CheckoutSucessoRouteImport } from './routes/checkout.sucesso'
 import { Route as ApiPublicProdutosImagemRouteImport } from './routes/api/public/produtos-imagem'
 import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 import { Route as ApiPublicWebhooksMercadopagoRouteImport } from './routes/api/public/webhooks/mercadopago'
+import { Route as ApiPublicCronPedidosRouteImport } from './routes/api/public/cron/pedidos'
 
 const TermosRoute = TermosRouteImport.update({
   id: '/termos',
@@ -90,6 +91,11 @@ const ApiPublicWebhooksMercadopagoRoute =
     path: '/api/public/webhooks/mercadopago',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicCronPedidosRoute = ApiPublicCronPedidosRouteImport.update({
+  id: '/api/public/cron/pedidos',
+  path: '/api/public/cron/pedidos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -103,6 +109,7 @@ export interface FileRoutesByFullPath {
   '/pedido/$pedidoId': typeof PedidoPedidoIdRoute
   '/checkout/': typeof CheckoutIndexRoute
   '/api/public/produtos-imagem': typeof ApiPublicProdutosImagemRoute
+  '/api/public/cron/pedidos': typeof ApiPublicCronPedidosRoute
   '/api/public/webhooks/mercadopago': typeof ApiPublicWebhooksMercadopagoRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
 }
@@ -117,6 +124,7 @@ export interface FileRoutesByTo {
   '/pedido/$pedidoId': typeof PedidoPedidoIdRoute
   '/checkout': typeof CheckoutIndexRoute
   '/api/public/produtos-imagem': typeof ApiPublicProdutosImagemRoute
+  '/api/public/cron/pedidos': typeof ApiPublicCronPedidosRoute
   '/api/public/webhooks/mercadopago': typeof ApiPublicWebhooksMercadopagoRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
 }
@@ -133,6 +141,7 @@ export interface FileRoutesById {
   '/pedido/$pedidoId': typeof PedidoPedidoIdRoute
   '/checkout/': typeof CheckoutIndexRoute
   '/api/public/produtos-imagem': typeof ApiPublicProdutosImagemRoute
+  '/api/public/cron/pedidos': typeof ApiPublicCronPedidosRoute
   '/api/public/webhooks/mercadopago': typeof ApiPublicWebhooksMercadopagoRoute
   '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
 }
@@ -150,6 +159,7 @@ export interface FileRouteTypes {
     | '/pedido/$pedidoId'
     | '/checkout/'
     | '/api/public/produtos-imagem'
+    | '/api/public/cron/pedidos'
     | '/api/public/webhooks/mercadopago'
     | '/lovable/email/transactional/preview'
   fileRoutesByTo: FileRoutesByTo
@@ -164,6 +174,7 @@ export interface FileRouteTypes {
     | '/pedido/$pedidoId'
     | '/checkout'
     | '/api/public/produtos-imagem'
+    | '/api/public/cron/pedidos'
     | '/api/public/webhooks/mercadopago'
     | '/lovable/email/transactional/preview'
   id:
@@ -179,6 +190,7 @@ export interface FileRouteTypes {
     | '/pedido/$pedidoId'
     | '/checkout/'
     | '/api/public/produtos-imagem'
+    | '/api/public/cron/pedidos'
     | '/api/public/webhooks/mercadopago'
     | '/lovable/email/transactional/preview'
   fileRoutesById: FileRoutesById
@@ -193,6 +205,7 @@ export interface RootRouteChildren {
   TermosRoute: typeof TermosRoute
   PedidoPedidoIdRoute: typeof PedidoPedidoIdRoute
   ApiPublicProdutosImagemRoute: typeof ApiPublicProdutosImagemRoute
+  ApiPublicCronPedidosRoute: typeof ApiPublicCronPedidosRoute
   ApiPublicWebhooksMercadopagoRoute: typeof ApiPublicWebhooksMercadopagoRoute
   LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
 }
@@ -290,6 +303,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicWebhooksMercadopagoRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/cron/pedidos': {
+      id: '/api/public/cron/pedidos'
+      path: '/api/public/cron/pedidos'
+      fullPath: '/api/public/cron/pedidos'
+      preLoaderRoute: typeof ApiPublicCronPedidosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -317,6 +337,7 @@ const rootRouteChildren: RootRouteChildren = {
   TermosRoute: TermosRoute,
   PedidoPedidoIdRoute: PedidoPedidoIdRoute,
   ApiPublicProdutosImagemRoute: ApiPublicProdutosImagemRoute,
+  ApiPublicCronPedidosRoute: ApiPublicCronPedidosRoute,
   ApiPublicWebhooksMercadopagoRoute: ApiPublicWebhooksMercadopagoRoute,
   LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
 }
