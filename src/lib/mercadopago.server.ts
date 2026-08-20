@@ -676,7 +676,16 @@ export async function sincronizarPagamentoPedido(params: {
   pedidoId?: string;
   paymentId?: string;
 }) {
-  if (!params.paymentId) {
+  // Sem payment_id (ex.: retorno do Checkout Pro só com external_reference):
+  // procura o pagamento pelo próprio pedido antes de desistir.
+  let payment: MercadoPagoPayment | null = null;
+  if (params.paymentId) {
+    payment = await consultarPagamentoMercadoPago(params.paymentId);
+  } else if (params.pedidoId) {
+    payment = await buscarPagamentoPorPedido(params.pedidoId);
+  }
+
+  if (!payment) {
     return {
       pedido_id: params.pedidoId ?? null,
       payment_id: null,
@@ -684,7 +693,6 @@ export async function sincronizarPagamentoPedido(params: {
     };
   }
 
-  const payment = await consultarPagamentoMercadoPago(params.paymentId);
   const pedidoId = payment.external_reference || params.pedidoId;
   if (!pedidoId) {
     return {
