@@ -83,16 +83,30 @@ function MeusPedidosPage() {
   const navigate = useNavigate();
   const [authChecked, setAuthChecked] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
+  const [authErro, setAuthErro] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data.session) {
-        navigate({ to: "/auth", search: { redirect: "/meus-pedidos" } });
-        return;
-      }
-      setSignedIn(true);
-      setAuthChecked(true);
-    });
+    let ativo = true;
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (!ativo) return;
+        if (!data.session) {
+          navigate({ to: "/auth", search: { redirect: "/meus-pedidos" } });
+          setAuthChecked(true);
+          return;
+        }
+        setSignedIn(true);
+        setAuthChecked(true);
+      })
+      .catch(() => {
+        if (!ativo) return;
+        setAuthErro("Sua sessão expirou. Entre novamente para ver seus pedidos.");
+        setAuthChecked(true);
+      });
+    return () => {
+      ativo = false;
+    };
   }, [navigate]);
 
   const fetchPedidos = useServerFn(listarMeusPedidos);
@@ -102,13 +116,36 @@ function MeusPedidosPage() {
     enabled: signedIn,
   });
 
-  if (!authChecked) {
+  if (!authChecked || (!signedIn && !authErro)) {
     return (
-      <div className="mx-auto max-w-md p-8 text-center">
-        <Loader2 className="mx-auto h-5 w-5 animate-spin text-primary" />
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="mx-auto max-w-md p-10 text-center">
+          <Loader2 className="mx-auto h-5 w-5 animate-spin text-primary" />
+          <p className="mt-3 text-sm text-muted-foreground">Verificando seu login...</p>
+        </div>
       </div>
     );
   }
+
+  if (authErro) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <div className="mx-auto max-w-md p-10 text-center">
+          <p className="text-sm text-muted-foreground">{authErro}</p>
+          <Link
+            to="/auth"
+            className="mt-4 inline-block rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground"
+          >
+            Entrar
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+
 
   return (
     <div className="min-h-screen bg-background">

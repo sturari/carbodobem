@@ -643,11 +643,49 @@ export async function consultarPagamentoMercadoPago(paymentId: string) {
   return (await payRes.json()) as MercadoPagoPayment;
 }
 
+/**
+ * Busca o pagamento mais relevante de um pedido usando `external_reference`.
+ * Usado quando o cliente volta do Mercado Pago sem `payment_id` na URL
+ * e na rotina de reconciliação. Prioriza pagamento aprovado.
+ */
+export async function buscarPagamentoPorPedido(
+  pedidoId: string,
+): Promise<MercadoPagoPayment | null> {
+  const { accessToken } = getMercadoPagoConfig();
+  const url = new URL("https://api.mercadopago.com/v1/payments/search");
+  url.searchParams.set("external_reference", pedidoId);
+  url.searchParams.set("sort", "date_created");
+  url.searchParams.set("criteria", "desc");
+  url.searchParams.set("limit", "10");
+
+  const res = await fetch(url.toString(), {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    console.error("[MP] erro na busca por external_reference", res.status, text);
+    return null;
+  }
+  const json = (await res.json()) as { results?: MercadoPagoPayment[] };
+  const results = json.results ?? [];
+  if (!results.length) return null;
+  return results.find((p) => p.status === "approved") ?? results[0]!;
+}
+
 export async function sincronizarPagamentoPedido(params: {
   pedidoId?: string;
   paymentId?: string;
 }) {
-  if (!params.paymentId) {
+  // Sem payment_id (ex.: retorno do Checkout Pro só com external_reference):
+  // procura o pagamento pelo próprio pedido antes de desistir.
+  let payment: MercadoPagoPayment | null = null;
+  if (params.paymentId) {
+    payment = await consultarPagamentoMercadoPago(params.paymentId);
+  } else if (params.pedidoId) {
+    payment = await buscarPagamentoPorPedido(params.pedidoId);
+  }
+
+  if (!payment) {
     return {
       pedido_id: params.pedidoId ?? null,
       payment_id: null,
@@ -655,7 +693,6 @@ export async function sincronizarPagamentoPedido(params: {
     };
   }
 
-  const payment = await consultarPagamentoMercadoPago(params.paymentId);
   const pedidoId = payment.external_reference || params.pedidoId;
   if (!pedidoId) {
     return {
