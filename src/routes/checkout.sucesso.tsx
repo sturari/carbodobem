@@ -23,6 +23,23 @@ export const Route = createFileRoute("/checkout/sucesso")({
       collection_status: pick(search.collection_status),
     };
   },
+  head: () => ({
+    meta: [
+      { title: "Confirmação do pedido — Carbo do Bem" },
+      {
+        name: "description",
+        content: "Acompanhe a confirmação do pagamento e o status do seu pedido.",
+      },
+      { property: "og:title", content: "Confirmação do pedido — Carbo do Bem" },
+      {
+        property: "og:description",
+        content: "Status do pagamento e do seu pedido na Carbo do Bem.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "robots", content: "noindex, nofollow" },
+    ],
+  }),
   component: Sucesso,
 });
 
