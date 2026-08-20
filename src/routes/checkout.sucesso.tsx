@@ -72,7 +72,11 @@ function Sucesso() {
       });
       setStatusConfirmado(res.status);
     } catch (e: unknown) {
-      setErro(e instanceof Error ? e.message : "Não foi possível confirmar o pagamento.");
+      // Nunca expor detalhes técnicos (validação/zod/erros do provedor) ao cliente.
+      console.error("[checkout/sucesso] falha ao confirmar pagamento", e);
+      setErro(
+        "Não conseguimos confirmar o pagamento agora. Tente atualizar em alguns instantes — se o pagamento foi aprovado, você receberá o e-mail de confirmação.",
+      );
     } finally {
       setCarregando(false);
     }
