@@ -11,6 +11,24 @@ import { SeletorHorario } from "@/components/checkout/SeletorHorario";
 import { useCheckoutForm } from "@/hooks/use-checkout-form";
 
 export const Route = createFileRoute("/checkout/")({
+  head: () => ({
+    meta: [
+      { title: "Finalizar pedido — Carbo do Bem" },
+      {
+        name: "description",
+        content:
+          "Informe seus dados, escolha o horário de entrega em Brasília e pague com Pix ou cartão.",
+      },
+      { property: "og:title", content: "Finalizar pedido — Carbo do Bem" },
+      {
+        property: "og:description",
+        content: "Checkout rápido: entrega agendada em Brasília, pagamento por Pix ou cartão.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { name: "robots", content: "noindex, nofollow" },
+    ],
+  }),
   component: CheckoutPage,
 });
 
