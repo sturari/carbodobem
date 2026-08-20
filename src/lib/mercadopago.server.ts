@@ -643,6 +643,35 @@ export async function consultarPagamentoMercadoPago(paymentId: string) {
   return (await payRes.json()) as MercadoPagoPayment;
 }
 
+/**
+ * Busca o pagamento mais relevante de um pedido usando `external_reference`.
+ * Usado quando o cliente volta do Mercado Pago sem `payment_id` na URL
+ * e na rotina de reconciliação. Prioriza pagamento aprovado.
+ */
+export async function buscarPagamentoPorPedido(
+  pedidoId: string,
+): Promise<MercadoPagoPayment | null> {
+  const { accessToken } = getMercadoPagoConfig();
+  const url = new URL("https://api.mercadopago.com/v1/payments/search");
+  url.searchParams.set("external_reference", pedidoId);
+  url.searchParams.set("sort", "date_created");
+  url.searchParams.set("criteria", "desc");
+  url.searchParams.set("limit", "10");
+
+  const res = await fetch(url.toString(), {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    console.error("[MP] erro na busca por external_reference", res.status, text);
+    return null;
+  }
+  const json = (await res.json()) as { results?: MercadoPagoPayment[] };
+  const results = json.results ?? [];
+  if (!results.length) return null;
+  return results.find((p) => p.status === "approved") ?? results[0]!;
+}
+
 export async function sincronizarPagamentoPedido(params: {
   pedidoId?: string;
   paymentId?: string;
