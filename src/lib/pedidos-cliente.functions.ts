@@ -81,3 +81,35 @@ export const buscarPedidoConvidado = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return pedido;
   });
+
+/**
+ * Reenvia o e-mail de confirmação de um pedido de convidado.
+ * Não exige login: valida o e-mail informado contra o cliente do pedido
+ * e aplica rate limit por IP para evitar abuso.
+ */
+export const reenviarEmailConfirmacaoConvidado = createServerFn({ method: "POST" })
+  .inputValidator((raw) =>
+    z
+      .object({ pedido_id: z.string().uuid(), email: z.string().email() })
+      .parse(raw),
+  )
+  .handler(async ({ data }) => {
+    const { getRequest } = await import("@tanstack/react-start/server");
+    const { enforceRateLimit, clientKeyFromHeaders } = await import(
+      "@/lib/rate-limit.server"
+    );
+    const ip = clientKeyFromHeaders(getRequest().headers);
+    await enforceRateLimit({
+      key: `reenvio-confirmacao:${ip}`,
+      limit: 5,
+      windowSeconds: 600,
+    });
+
+    const { reenviarConfirmacaoConvidado } = await import(
+      "@/lib/reenviar-confirmacao.server"
+    );
+    return reenviarConfirmacaoConvidado({
+      pedidoId: data.pedido_id,
+      email: data.email,
+    });
+  });
