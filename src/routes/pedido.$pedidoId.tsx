@@ -1,11 +1,79 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery } from "@tanstack/react-query";
-import { Loader2, PackageSearch } from "lucide-react";
+import React from "react";
+import { Loader2, MailCheck, PackageSearch } from "lucide-react";
+import { toast } from "sonner";
 import { Header } from "@/components/Header";
 import { CarrinhoDrawer } from "@/components/CarrinhoDrawer";
-import { buscarPedidoConvidado } from "@/lib/pedidos-cliente.functions";
+import {
+  buscarPedidoConvidado,
+  reenviarEmailConfirmacaoConvidado,
+} from "@/lib/pedidos-cliente.functions";
 import { formatBRL } from "@/lib/format";
+
+function ReenviarConfirmacao({ pedidoId }: { pedidoId: string }) {
+  const reenviar = useServerFn(reenviarEmailConfirmacaoConvidado);
+  const [email, setEmail] = React.useState("");
+  const [enviando, setEnviando] = React.useState(false);
+  const [enviado, setEnviado] = React.useState(false);
+
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (enviando) return;
+    setEnviando(true);
+    try {
+      const res = await reenviar({ data: { pedido_id: pedidoId, email } });
+      if (res.ok) {
+        setEnviado(true);
+        toast.success("E-mail de confirmação reenviado!");
+      } else {
+        toast.error("Este e-mail está bloqueado para envios. Fale com o atendimento.");
+      }
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Não foi possível reenviar o e-mail.",
+      );
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  return (
+    <form
+      onSubmit={onSubmit}
+      className="mt-6 rounded-xl border border-border/70 bg-muted/40 p-4 text-sm"
+    >
+      <p className="font-semibold">Não recebeu o e-mail de confirmação?</p>
+      <p className="mt-1 text-xs text-muted-foreground">
+        Informe o mesmo e-mail usado no pedido e reenviamos a confirmação com este
+        link de acompanhamento.
+      </p>
+      <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+        <input
+          type="email"
+          required
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          placeholder="seu@email.com"
+          className="min-w-0 flex-1 rounded-full border border-border bg-background px-4 py-2 text-sm"
+        />
+        <button
+          type="submit"
+          disabled={enviando || enviado}
+          className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground disabled:opacity-60"
+        >
+          {enviando ? (
+            <Loader2 className="h-4 w-4 animate-spin" />
+          ) : (
+            <MailCheck className="h-4 w-4" />
+          )}
+          {enviado ? "Enviado" : "Reenviar e-mail"}
+        </button>
+      </div>
+    </form>
+  );
+}
 
 export const Route = createFileRoute("/pedido/$pedidoId")({
   head: () => ({
