@@ -67,6 +67,39 @@ export async function enforceRateLimit(opts: RateLimitOptions): Promise<void> {
     .eq("key", opts.key);
 }
 
+/**
+ * Lê o saldo da janela atual sem consumir tentativa — usado para exibir
+ * "X reenvios restantes" na interface.
+ */
+export async function peekRateLimit(
+  opts: RateLimitOptions,
+): Promise<{ restantes: number; resetEmSegundos: number }> {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const supa: SupabaseAdmin = supabaseAdmin;
+  const { data: row } = await supa
+    .from("rate_limits")
+    .select("key, window_start, count")
+    .eq("key", opts.key)
+    .maybeSingle();
+
+  const windowMs = opts.windowSeconds * 1000;
+  const now = Date.now();
+  const start = row
+    ? new Date((row as { window_start: string }).window_start).getTime()
+    : 0;
+
+  if (!row || now - start > windowMs) {
+    return { restantes: opts.limit, resetEmSegundos: 0 };
+  }
+
+  const usados = (row as { count: number }).count ?? 0;
+  return {
+    restantes: Math.max(0, opts.limit - usados),
+    resetEmSegundos: Math.max(0, Math.ceil((start + windowMs - now) / 1000)),
+  };
+}
+
+
 /** Extrai um identificador estável do chamador (IP) para chavear o limite. */
 export function clientKeyFromHeaders(headers: {
   get(name: string): string | null | undefined;
