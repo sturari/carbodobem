@@ -16,6 +16,8 @@ export type RateLimitOptions = {
   key: string;
   limit: number;
   windowSeconds: number;
+  /** Mensagem exibida ao usuário; `{s}` é substituído pelos segundos restantes. */
+  message?: string;
 };
 
 export async function enforceRateLimit(opts: RateLimitOptions): Promise<void> {
@@ -54,9 +56,9 @@ export async function enforceRateLimit(opts: RateLimitOptions): Promise<void> {
       1,
       Math.ceil((currentStart + windowMs - now.getTime()) / 1000),
     );
-    throw new Error(
-      `Muitas tentativas de pagamento. Aguarde ${retryInSec}s e tente novamente.`,
-    );
+    const template =
+      opts.message ?? "Muitas tentativas. Aguarde {s}s e tente novamente.";
+    throw new Error(template.replace("{s}", String(retryInSec)));
   }
 
   await supa

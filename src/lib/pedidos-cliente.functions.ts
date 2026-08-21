@@ -103,6 +103,8 @@ export const reenviarEmailConfirmacaoConvidado = createServerFn({ method: "POST"
       key: `reenvio-confirmacao:${ip}`,
       limit: 5,
       windowSeconds: 600,
+      message:
+        "Muitos reenvios de e-mail. Aguarde {s}s e tente novamente ou fale com o atendimento.",
     });
 
     const { reenviarConfirmacaoConvidado } = await import(
