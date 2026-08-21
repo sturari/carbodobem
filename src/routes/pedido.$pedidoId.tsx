@@ -121,7 +121,7 @@ function ReenviarConfirmacao({ pedidoId }: { pedidoId: string }) {
         />
         <button
           type="submit"
-          disabled={enviando || enviado}
+          disabled={enviando || enviado || semTentativas}
           className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-full bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground disabled:opacity-60"
         >
           {enviando ? (
