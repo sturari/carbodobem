@@ -149,7 +149,9 @@ describe("reenviarConfirmacaoConvidado", () => {
   it("reporta e-mail suprimido sem lançar erro", async () => {
     state.suppress = true;
     const res = await reenviar("felipe.sturari@gmail.com");
-    expect(res).toEqual({ ok: false, motivo: "suprimido" });
+    expect(res.ok).toBe(false);
+    expect(res.motivo).toBe("suprimido");
+    expect(res.mensagem).toMatch(/bloqueado/i);
   });
 
   it("usa idempotencyKey distinta por reenvio", async () => {
