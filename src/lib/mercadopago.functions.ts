@@ -80,6 +80,7 @@ async function limitarPagamento(rota: string): Promise<void> {
     key: `pay:${rota}:${ip}`,
     limit: 10,
     windowSeconds: 60,
+    message: "Muitas tentativas de pagamento. Aguarde {s}s e tente novamente.",
   });
 }
 
