@@ -57,22 +57,79 @@ export async function reenviarConfirmacaoConvidado(params: {
   const taxaEntrega = Math.max(0, Number((valorTotal - subtotal).toFixed(2)));
 
   const { sendTemplateEmail } = await import("@/lib/email-templates/send-email");
-  const result = await sendTemplateEmail("pedido-confirmado", cliente.email, {
-    idempotencyKey: `pedido-confirmado-reenvio-${pedido.id}-${Date.now()}`,
-    templateData: {
-      nome_cliente: cliente.nome,
-      pedido_id: pedido.id,
-      itens,
-      subtotal,
-      taxa_entrega: taxaEntrega,
-      valor_total: valorTotal,
-      horario_entrega: pedido.horario_entrega,
-      endereco: pedido.enderecos,
-      observacoes: pedido.observacoes,
-      tracking_url: `${getPublicAppUrl()}/pedido/${pedido.id}`,
-    },
-  });
+  const enviar = () =>
+    sendTemplateEmail("pedido-confirmado", cliente.email, {
+      idempotencyKey: `pedido-confirmado-reenvio-${pedido.id}-${Date.now()}`,
+      templateData: {
+        nome_cliente: cliente.nome,
+        pedido_id: pedido.id,
+        itens,
+        subtotal,
+        taxa_entrega: taxaEntrega,
+        valor_total: valorTotal,
+        horario_entrega: pedido.horario_entrega,
+        endereco: pedido.enderecos,
+        observacoes: pedido.observacoes,
+        tracking_url: `${getPublicAppUrl()}/pedido/${pedido.id}`,
+      },
+    });
 
-  if (!result.sent) return { ok: false, motivo: "suprimido" };
-  return { ok: true };
+  try {
+    const result = await enviar();
+    if (!result.sent) {
+      return {
+        ok: false,
+        motivo: "suprimido",
+        mensagem:
+          "Este e-mail está bloqueado para novos envios (caixa inexistente, devolução anterior ou descadastro). Fale com o atendimento.",
+      };
+    }
+    return { ok: true };
+  } catch (error) {
+    const { EmailAPIError } = await import("@lovable.dev/email-js");
+    if (error instanceof EmailAPIError) {
+      console.error("[reenvio-confirmacao] falha no provedor", {
+        pedido: pedido.id,
+        code: error.code,
+        status: error.status,
+      });
+      if (error.code === "domain_not_verified") {
+        return {
+          ok: false,
+          motivo: "dominio_nao_verificado",
+          mensagem:
+            "Nosso remetente de e-mail está em verificação. Use este link para acompanhar o pedido — ele continua válido.",
+        };
+      }
+      if (error.code === "emails_disabled") {
+        return {
+          ok: false,
+          motivo: "envios_desativados",
+          mensagem:
+            "O envio de e-mails está temporariamente desativado. Use este link para acompanhar o pedido.",
+        };
+      }
+      if (error.status === 429) {
+        const espera = error.retryAfterSeconds ?? 60;
+        return {
+          ok: false,
+          motivo: "limite_provedor",
+          mensagem: `Estamos com muitos envios agora. Tente novamente em ${espera}s.`,
+        };
+      }
+      return {
+        ok: false,
+        motivo: "falha_provedor",
+        mensagem:
+          "Não conseguimos enviar o e-mail agora. Tente novamente em alguns minutos ou fale com o atendimento.",
+      };
+    }
+    console.error("[reenvio-confirmacao] erro inesperado", error);
+    return {
+      ok: false,
+      motivo: "falha_provedor",
+      mensagem:
+        "Não conseguimos enviar o e-mail agora. Tente novamente em alguns minutos.",
+    };
+  }
 }
