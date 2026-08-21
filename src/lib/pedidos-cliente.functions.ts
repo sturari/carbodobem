@@ -115,3 +115,21 @@ export const reenviarEmailConfirmacaoConvidado = createServerFn({ method: "POST"
       email: data.email,
     });
   });
+
+/**
+ * Status do último e-mail enviado para o pedido de convidado + saldo de
+ * reenvios do IP na janela de 10 minutos. Não expõe o e-mail completo.
+ */
+export const statusEnvioEmailConvidado = createServerFn({ method: "POST" })
+  .inputValidator((raw) => z.object({ pedido_id: z.string().uuid() }).parse(raw))
+  .handler(async ({ data }) => {
+    const { getRequest } = await import("@tanstack/react-start/server");
+    const { clientKeyFromHeaders } = await import("@/lib/rate-limit.server");
+    const { statusEnvioPedido } = await import("@/lib/email-status.server");
+    return statusEnvioPedido({
+      pedidoId: data.pedido_id,
+      ip: clientKeyFromHeaders(getRequest().headers),
+      limite: 5,
+      janelaSegundos: 600,
+    });
+  });
