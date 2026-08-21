@@ -6,10 +6,17 @@ import { getPublicAppUrl } from "@/lib/mercadopago.server";
  * informado seja exatamente o e-mail do cliente do pedido — assim o link
  * de rastreio nunca é enviado para um endereço arbitrário.
  */
+export type MotivoFalhaEnvio =
+  | "suprimido"
+  | "dominio_nao_verificado"
+  | "envios_desativados"
+  | "limite_provedor"
+  | "falha_provedor";
+
 export async function reenviarConfirmacaoConvidado(params: {
   pedidoId: string;
   email: string;
-}): Promise<{ ok: boolean; motivo?: "suprimido" }> {
+}): Promise<{ ok: boolean; motivo?: MotivoFalhaEnvio; mensagem?: string }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
   const { data: pedido, error } = await supabaseAdmin
