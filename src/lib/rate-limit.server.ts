@@ -16,6 +16,8 @@ export type RateLimitOptions = {
   key: string;
   limit: number;
   windowSeconds: number;
+  /** Mensagem exibida ao usuário; `{s}` é substituído pelos segundos restantes. */
+  message?: string;
 };
 
 export async function enforceRateLimit(opts: RateLimitOptions): Promise<void> {
