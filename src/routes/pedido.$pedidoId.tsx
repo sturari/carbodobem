@@ -9,14 +9,45 @@ import { CarrinhoDrawer } from "@/components/CarrinhoDrawer";
 import {
   buscarPedidoConvidado,
   reenviarEmailConfirmacaoConvidado,
+  statusEnvioEmailConvidado,
 } from "@/lib/pedidos-cliente.functions";
 import { formatBRL } from "@/lib/format";
 
+const ENVIO_LABEL: Record<string, { texto: string; tom: string }> = {
+  enviado: { texto: "Enviado com sucesso", tom: "text-emerald-600" },
+  rejeitado: { texto: "Recusado pelo servidor de e-mail", tom: "text-destructive" },
+  devolvido: { texto: "Devolvido (caixa inexistente ou cheia)", tom: "text-destructive" },
+  reclamacao: { texto: "Marcado como spam", tom: "text-destructive" },
+  descadastrado: { texto: "Descadastrado dos envios", tom: "text-amber-600" },
+  bloqueado: { texto: "Bloqueado para novos envios", tom: "text-destructive" },
+  limitado: { texto: "Atrasado por limite de envios", tom: "text-amber-600" },
+  sem_registro: { texto: "Nenhum envio registrado ainda", tom: "text-muted-foreground" },
+  indisponivel: { texto: "Status indisponível no momento", tom: "text-muted-foreground" },
+};
+
+function formatarJanela(segundos: number) {
+  if (segundos <= 0) return null;
+  const min = Math.floor(segundos / 60);
+  const seg = segundos % 60;
+  return min > 0 ? `${min}min ${String(seg).padStart(2, "0")}s` : `${seg}s`;
+}
+
 function ReenviarConfirmacao({ pedidoId }: { pedidoId: string }) {
   const reenviar = useServerFn(reenviarEmailConfirmacaoConvidado);
+  const buscarStatus = useServerFn(statusEnvioEmailConvidado);
   const [email, setEmail] = React.useState("");
   const [enviando, setEnviando] = React.useState(false);
   const [enviado, setEnviado] = React.useState(false);
+
+  const statusQ = useQuery({
+    queryKey: ["status-envio-email", pedidoId],
+    queryFn: () => buscarStatus({ data: { pedido_id: pedidoId } }),
+    refetchInterval: 30_000,
+  });
+  const status = statusQ.data;
+  const restantes = status?.tentativas_restantes ?? null;
+  const semTentativas = restantes === 0;
+  const janela = formatarJanela(status?.janela_reset_segundos ?? 0);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,7 +59,10 @@ function ReenviarConfirmacao({ pedidoId }: { pedidoId: string }) {
         setEnviado(true);
         toast.success("E-mail de confirmação reenviado!");
       } else {
-        toast.error("Este e-mail está bloqueado para envios. Fale com o atendimento.");
+        toast.error(
+          res.mensagem ??
+            "Não foi possível enviar o e-mail agora. Fale com o atendimento.",
+        );
       }
     } catch (err) {
       toast.error(
@@ -36,6 +70,7 @@ function ReenviarConfirmacao({ pedidoId }: { pedidoId: string }) {
       );
     } finally {
       setEnviando(false);
+      statusQ.refetch();
     }
   };
 
@@ -49,6 +84,32 @@ function ReenviarConfirmacao({ pedidoId }: { pedidoId: string }) {
         Informe o mesmo e-mail usado no pedido e reenviamos a confirmação com este
         link de acompanhamento.
       </p>
+
+      {status && (
+        <div className="mt-3 rounded-lg border border-border/60 bg-background/70 p-3 text-xs">
+          <p className="flex flex-wrap items-center gap-1.5">
+            <span className="text-muted-foreground">Último envio para</span>
+            <span className="font-medium">{status.email_mascarado}</span>
+            <span className="text-muted-foreground">•</span>
+            <span
+              className={`font-semibold ${ENVIO_LABEL[status.status]?.tom ?? "text-muted-foreground"}`}
+            >
+              {ENVIO_LABEL[status.status]?.texto ?? status.status}
+            </span>
+          </p>
+          {status.em && (
+            <p className="mt-1 text-muted-foreground">
+              {new Date(status.em).toLocaleString("pt-BR")}
+            </p>
+          )}
+          <p className="mt-1 text-muted-foreground">
+            {semTentativas
+              ? `Limite de ${status.tentativas_limite} reenvios atingido${janela ? ` — libera em ${janela}` : ""}.`
+              : `${status.tentativas_restantes} de ${status.tentativas_limite} reenvios restantes${janela ? ` nesta janela de 10 min (reinicia em ${janela})` : " nos próximos 10 minutos"}.`}
+          </p>
+        </div>
+      )}
+
       <div className="mt-3 flex flex-col gap-2 sm:flex-row">
         <input
           type="email"
