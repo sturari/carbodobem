@@ -14,13 +14,13 @@ import {
 import { formatBRL } from "@/lib/format";
 
 const ENVIO_LABEL: Record<string, { texto: string; tom: string }> = {
-  enviado: { texto: "Enviado com sucesso", tom: "text-emerald-600" },
+  enviado: { texto: "Enviado com sucesso", tom: "text-warm" },
   rejeitado: { texto: "Recusado pelo servidor de e-mail", tom: "text-destructive" },
   devolvido: { texto: "Devolvido (caixa inexistente ou cheia)", tom: "text-destructive" },
   reclamacao: { texto: "Marcado como spam", tom: "text-destructive" },
-  descadastrado: { texto: "Descadastrado dos envios", tom: "text-amber-600" },
+  descadastrado: { texto: "Descadastrado dos envios", tom: "text-muted-foreground" },
   bloqueado: { texto: "Bloqueado para novos envios", tom: "text-destructive" },
-  limitado: { texto: "Atrasado por limite de envios", tom: "text-amber-600" },
+  limitado: { texto: "Atrasado por limite de envios", tom: "text-muted-foreground" },
   sem_registro: { texto: "Nenhum envio registrado ainda", tom: "text-muted-foreground" },
   indisponivel: { texto: "Status indisponível no momento", tom: "text-muted-foreground" },
 };

@@ -206,28 +206,28 @@ export const template = {
 const main = { backgroundColor: '#ffffff', fontFamily: '"Plus Jakarta Sans", Arial, sans-serif', margin: 0, padding: 0 }
 const container = { maxWidth: '560px', margin: '0 auto', padding: '24px 20px' }
 const header = { textAlign: 'center' as const, paddingBottom: '8px' }
-const brand = { color: '#1f5d3a', fontSize: '28px', margin: '0', fontWeight: 700 }
-const tagline = { color: '#6b7565', fontSize: '13px', margin: '4px 0 0 0' }
-const card = { backgroundColor: '#f7f5ef', borderRadius: '14px', padding: '20px 22px', margin: '16px 0' }
-const h2 = { color: '#1f5d3a', fontSize: '20px', margin: '0 0 8px 0' }
-const h3 = { color: '#1f5d3a', fontSize: '16px', margin: '0 0 10px 0' }
-const paragraph = { color: '#2c3a2e', fontSize: '14px', lineHeight: '22px', margin: '0 0 6px 0' }
-const pedidoRef = { color: '#2c3a2e', fontSize: '13px', margin: '8px 0 0 0' }
+const brand = { color: '#0b4a3d', fontSize: '28px', margin: '0', fontWeight: 700 }
+const tagline = { color: '#5a6b64', fontSize: '13px', margin: '4px 0 0 0' }
+const card = { backgroundColor: '#f2f7f5', borderRadius: '14px', padding: '20px 22px', margin: '16px 0' }
+const h2 = { color: '#0b4a3d', fontSize: '20px', margin: '0 0 8px 0' }
+const h3 = { color: '#0b4a3d', fontSize: '16px', margin: '0 0 10px 0' }
+const paragraph = { color: '#1a1a1a', fontSize: '14px', lineHeight: '22px', margin: '0 0 6px 0' }
+const pedidoRef = { color: '#1a1a1a', fontSize: '13px', margin: '8px 0 0 0' }
 const itemRow = { padding: '6px 0' }
-const itemQty = { width: '40px', color: '#1f5d3a', fontWeight: 600, fontSize: '14px', verticalAlign: 'top' as const }
-const itemName = { color: '#2c3a2e', fontSize: '14px', verticalAlign: 'top' as const }
-const itemPrice = { width: '90px', textAlign: 'right' as const, color: '#2c3a2e', fontSize: '14px', verticalAlign: 'top' as const }
-const hr = { borderColor: '#e5e0d1', margin: '12px 0' }
+const itemQty = { width: '40px', color: '#0b4a3d', fontWeight: 600, fontSize: '14px', verticalAlign: 'top' as const }
+const itemName = { color: '#1a1a1a', fontSize: '14px', verticalAlign: 'top' as const }
+const itemPrice = { width: '90px', textAlign: 'right' as const, color: '#1a1a1a', fontSize: '14px', verticalAlign: 'top' as const }
+const hr = { borderColor: '#dfe9e5', margin: '12px 0' }
 const totalRow = { padding: '4px 0' }
-const totalLabel = { color: '#6b7565', fontSize: '14px' }
-const totalValue = { textAlign: 'right' as const, color: '#2c3a2e', fontSize: '14px' }
-const totalLabelBold = { color: '#1f5d3a', fontSize: '16px', fontWeight: 700 }
+const totalLabel = { color: '#5a6b64', fontSize: '14px' }
+const totalValue = { textAlign: 'right' as const, color: '#1a1a1a', fontSize: '14px' }
+const totalLabelBold = { color: '#0b4a3d', fontSize: '16px', fontWeight: 700 }
 const totalValueBold = { textAlign: 'right' as const, color: '#c45a1a', fontSize: '18px', fontWeight: 700 }
 const footer = { textAlign: 'center' as const, padding: '16px 0 0 0' }
-const footerText = { color: '#6b7565', fontSize: '12px', lineHeight: '18px', margin: 0 }
+const footerText = { color: '#5a6b64', fontSize: '12px', lineHeight: '18px', margin: 0 }
 const trackingBtn = {
   display: 'inline-block',
-  backgroundColor: '#1f5d3a',
+  backgroundColor: '#0b4a3d',
   color: '#ffffff',
   padding: '10px 18px',
   borderRadius: '999px',
