@@ -185,7 +185,7 @@ function TermosPage() {
           <p>{"\n"}</p>
           <p>{"\n"}</p>
 
-          <H2>9. Produto com problema, troca e reembolso</H2>
+          <H2>8. Produto com problema, troca e reembolso</H2>
           <ul className="list-disc pl-5">
             <li>
               Produto avariado, fora da validade, descongelado na entrega ou diferente do
@@ -203,28 +203,28 @@ function TermosPage() {
             </li>
           </ul>
 
-          <H2>10. Cancelamento antes da entrega</H2>
+          <H2>9. Cancelamento antes da entrega</H2>
           <p>
             Pedidos podem ser cancelados sem custo enquanto não estiverem em preparo.
             Após o início do preparo, entre em contato: avaliaremos o cancelamento ou o
             reagendamento da entrega.
           </p>
 
-          <H2>11. Uso adequado do site</H2>
+          <H2>10. Uso adequado do site</H2>
           <p>
             O cliente concorda em usar o site apenas para fins lícitos e a não tentar
             interferir em seu funcionamento, coletar dados de outros usuários, aplicar
             engenharia reversa ou burlar mecanismos de segurança.
           </p>
 
-          <H2>12. Propriedade intelectual</H2>
+          <H2>11. Propriedade intelectual</H2>
           <p>
             Marca, logotipo, imagens, receitas, textos e demais conteúdos do site
             pertencem à {EMPRESA.nomeFantasia} e não podem ser reproduzidos sem
             autorização por escrito.
           </p>
 
-          <H2>13. Responsabilidade</H2>
+          <H2>12. Responsabilidade</H2>
           <p>
             Respondemos pelos nossos produtos e serviços nos limites do Código de Defesa
             do Consumidor. Não respondemos por danos decorrentes de conservação
@@ -233,7 +233,7 @@ function TermosPage() {
             internet, do provedor de pagamento e de outros serviços de terceiros.
           </p>
 
-          <H2>14. Privacidade e dados pessoais</H2>
+          <H2>13. Privacidade e dados pessoais</H2>
           <p>
             O tratamento dos seus dados está descrito na{" "}
             <Link className="text-primary underline" to="/privacidade">
@@ -242,14 +242,14 @@ function TermosPage() {
             , parte integrante destes Termos.
           </p>
 
-          <H2>15. Alterações destes Termos</H2>
+          <H2>14. Alterações destes Termos</H2>
           <p>
             Podemos atualizar estes Termos a qualquer momento. A versão vigente estará
             sempre nesta página, com a data de última atualização; as condições aplicáveis
             ao seu pedido são as vigentes na data da compra.
           </p>
 
-          <H2>16. Lei aplicável e foro</H2>
+          <H2>15. Lei aplicável e foro</H2>
           <p>
             Estes Termos são regidos pelas leis brasileiras. Fica eleito o foro do
             domicílio do consumidor para dirimir eventuais controvérsias, conforme o art.
