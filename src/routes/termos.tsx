@@ -181,20 +181,9 @@ function TermosPage() {
             </li>
           </ul>
 
-          <H2>8. Direito de arrependimento (7 dias)</H2>
-          <p>
-            Por ser compra fora do estabelecimento, você pode desistir em até{" "}
-            <strong>7 dias corridos</strong> contados do recebimento, sem precisar
-            justificar (art. 49 do CDC). Basta avisar por e-mail ou WhatsApp. Os valores
-            pagos, inclusive a taxa de entrega, são devolvidos integralmente.
-          </p>
-          <p>
-            Por segurança alimentar, a devolução dos produtos depende de o lacre estar
-            intacto e de o item ter sido conservado congelado. Produtos abertos,
-            descongelados ou consumidos não podem ser recolhidos para revenda, mas isso
-            não afasta seus direitos em caso de vício ou defeito (item 9). A retirada é
-            combinada com nossa equipe, sem custo para você.
-          </p>
+          <H2>{"\n"}</H2>
+          <p>{"\n"}</p>
+          <p>{"\n"}</p>
 
           <H2>9. Produto com problema, troca e reembolso</H2>
           <ul className="list-disc pl-5">
