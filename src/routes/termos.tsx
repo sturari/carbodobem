@@ -90,9 +90,7 @@ function TermosPage() {
           <H2>2. Atendimento ao cliente</H2>
           <p>
             Atendemos por e-mail ({EMPRESA.email}), WhatsApp ({EMPRESA.whatsapp}) e
-            Instagram ({EMPRESA.instagram}). Conforme o art. 4º do Decreto nº 7.962/2013,
-            respondemos às demandas de informação, reclamação, cancelamento ou suspensão
-            do contrato em <strong>até 5 dias úteis</strong>.
+            Instagram ({EMPRESA.instagram}).
           </p>
 
           <H2>3. Capacidade para contratar</H2>
