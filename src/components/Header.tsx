@@ -9,6 +9,9 @@ export function Header() {
   const total = useCart((s) => s.totalItens());
   const abrir = useCart((s) => s.abrir);
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
+  const [montado, setMontado] = useState(false);
+
+  useEffect(() => setMontado(true), []);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => setSignedIn(!!data.session));
@@ -85,7 +88,7 @@ export function Header() {
           >
             <ShoppingBag className="h-4 w-4" />
             <span className="hidden sm:inline">Carrinho</span>
-            {total > 0 && (
+            {montado && total > 0 && (
               <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-warm px-1 text-[11px] font-bold text-white">
                 {total}
               </span>
