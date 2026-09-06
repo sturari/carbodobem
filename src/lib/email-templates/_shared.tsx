@@ -30,7 +30,7 @@ export const BrandFooter = () => (
 )
 
 const footer = { textAlign: 'center' as const, padding: '16px 0 0 0' }
-const hr = { borderColor: '#e5e0d1', margin: '16px 0 12px 0' }
-const footerText = { color: '#6b7565', fontSize: '12px', lineHeight: '18px', margin: '4px 0' }
-const footerAddr = { color: '#6b7565', fontSize: '11px', lineHeight: '16px', margin: '4px 0' }
-const link = { color: '#1f5d3a', textDecoration: 'none' }
+const hr = { borderColor: '#dfe9e5', margin: '16px 0 12px 0' }
+const footerText = { color: '#5a6b64', fontSize: '12px', lineHeight: '18px', margin: '4px 0' }
+const footerAddr = { color: '#5a6b64', fontSize: '11px', lineHeight: '16px', margin: '4px 0' }
+const link = { color: '#0b4a3d', textDecoration: 'none' }

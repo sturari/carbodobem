@@ -89,7 +89,7 @@ export function Header() {
             <ShoppingBag className="h-4 w-4" />
             <span className="hidden sm:inline">Carrinho</span>
             {montado && total > 0 && (
-              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-warm px-1 text-[11px] font-bold text-white">
+              <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-warm px-1 text-[11px] font-bold text-primary-foreground">
                 {total}
               </span>
             )}
