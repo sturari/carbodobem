@@ -14,12 +14,16 @@ export const Route = createFileRoute("/api/public/cron/pedidos")({
   server: {
     handlers: {
       POST: async ({ request }: { request: Request }) => {
-        const secret = process.env["CRON_SECRET"];
-        if (!secret) {
+        // CRON_SECRET: uso manual/externo.
+        // CRON_JOB_SECRET: usado pelo agendamento interno (pg_cron).
+        const aceitos = [process.env["CRON_SECRET"], process.env["CRON_JOB_SECRET"]].filter(
+          (s): s is string => typeof s === "string" && s.length > 0,
+        );
+        if (aceitos.length === 0) {
           return new Response("Missing config", { status: 500 });
         }
         const provided = request.headers.get("x-cron-secret");
-        if (!provided || provided !== secret) {
+        if (!provided || !aceitos.includes(provided)) {
           return new Response("Unauthorized", { status: 401 });
         }
 
