@@ -10,7 +10,6 @@ import { createFileRoute } from "@tanstack/react-router";
  * Segurança: exige o segredo CRON_SECRET; nunca retorna dados pessoais.
  */
 export const Route = createFileRoute("/api/public/cron/pedidos")({
-  // @ts-expect-error - `server` handled by TanStack Start plugin at build time
   server: {
     handlers: {
       POST: async ({ request }: { request: Request }) => {

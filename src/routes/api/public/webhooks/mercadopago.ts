@@ -17,7 +17,6 @@ const corsHeaders = {
 };
 
 export const Route = createFileRoute("/api/public/webhooks/mercadopago")({
-  // @ts-expect-error - `server` handled by TanStack Start plugin at build time
   server: {
     handlers: {
       OPTIONS: async () =>

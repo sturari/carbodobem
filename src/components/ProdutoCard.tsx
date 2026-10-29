@@ -1,4 +1,4 @@
-import { Plus, Snowflake } from "lucide-react";
+import { Plus } from "lucide-react";
 import { useCart, type ProdutoBase } from "@/lib/cart-store";
 import { formatBRL } from "@/lib/format";
 
@@ -29,9 +29,6 @@ export function ProdutoCard({ p }: { p: ProdutoCardData }) {
             sem imagem
           </div>
         )}
-        <span className="absolute left-3 top-3 flex items-center gap-1 rounded-full bg-cold/90 px-2.5 py-1 text-[11px] font-semibold text-white shadow">
-          <Snowflake className="h-3 w-3" /> congelado
-        </span>
         {semEstoque && (
           <span className="absolute right-3 top-3 rounded-full bg-foreground/85 px-2.5 py-1 text-[11px] font-semibold text-white shadow">
             Esgotado

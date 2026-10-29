@@ -9,44 +9,24 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TermosRouteImport } from './routes/termos'
-import { Route as PrivacidadeRouteImport } from './routes/privacidade'
-import { Route as MeusPedidosRouteImport } from './routes/meus-pedidos'
-import { Route as CheckoutRouteImport } from './routes/checkout'
-import { Route as AuthRouteImport } from './routes/auth'
-import { Route as AdminRouteImport } from './routes/admin'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as CheckoutRouteImport } from './routes/checkout'
+import { Route as MeusPedidosRouteImport } from './routes/meus-pedidos'
+import { Route as PrivacidadeRouteImport } from './routes/privacidade'
+import { Route as TermosRouteImport } from './routes/termos'
 import { Route as CheckoutIndexRouteImport } from './routes/checkout.index'
-import { Route as PedidoPedidoIdRouteImport } from './routes/pedido.$pedidoId'
 import { Route as CheckoutSucessoRouteImport } from './routes/checkout.sucesso'
+import { Route as PedidoPedidoIdRouteImport } from './routes/pedido.$pedidoId'
 import { Route as ApiPublicProdutosImagemRouteImport } from './routes/api/public/produtos-imagem'
-import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
-import { Route as ApiPublicWebhooksMercadopagoRouteImport } from './routes/api/public/webhooks/mercadopago'
 import { Route as ApiPublicCronPedidosRouteImport } from './routes/api/public/cron/pedidos'
+import { Route as ApiPublicWebhooksMercadopagoRouteImport } from './routes/api/public/webhooks/mercadopago'
+import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 
-const TermosRoute = TermosRouteImport.update({
-  id: '/termos',
-  path: '/termos',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PrivacidadeRoute = PrivacidadeRouteImport.update({
-  id: '/privacidade',
-  path: '/privacidade',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const MeusPedidosRoute = MeusPedidosRouteImport.update({
-  id: '/meus-pedidos',
-  path: '/meus-pedidos',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CheckoutRoute = CheckoutRouteImport.update({
-  id: '/checkout',
-  path: '/checkout',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthRoute = AuthRouteImport.update({
-  id: '/auth',
-  path: '/auth',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminRoute = AdminRouteImport.update({
@@ -54,9 +34,29 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckoutRoute = CheckoutRouteImport.update({
+  id: '/checkout',
+  path: '/checkout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MeusPedidosRoute = MeusPedidosRouteImport.update({
+  id: '/meus-pedidos',
+  path: '/meus-pedidos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivacidadeRoute = PrivacidadeRouteImport.update({
+  id: '/privacidade',
+  path: '/privacidade',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermosRoute = TermosRouteImport.update({
+  id: '/termos',
+  path: '/termos',
   getParentRoute: () => rootRouteImport,
 } as any)
 const CheckoutIndexRoute = CheckoutIndexRouteImport.update({
@@ -64,38 +64,38 @@ const CheckoutIndexRoute = CheckoutIndexRouteImport.update({
   path: '/',
   getParentRoute: () => CheckoutRoute,
 } as any)
-const PedidoPedidoIdRoute = PedidoPedidoIdRouteImport.update({
-  id: '/pedido/$pedidoId',
-  path: '/pedido/$pedidoId',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const CheckoutSucessoRoute = CheckoutSucessoRouteImport.update({
   id: '/sucesso',
   path: '/sucesso',
   getParentRoute: () => CheckoutRoute,
+} as any)
+const PedidoPedidoIdRoute = PedidoPedidoIdRouteImport.update({
+  id: '/pedido/$pedidoId',
+  path: '/pedido/$pedidoId',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const ApiPublicProdutosImagemRoute = ApiPublicProdutosImagemRouteImport.update({
   id: '/api/public/produtos-imagem',
   path: '/api/public/produtos-imagem',
   getParentRoute: () => rootRouteImport,
 } as any)
-const LovableEmailTransactionalPreviewRoute =
-  LovableEmailTransactionalPreviewRouteImport.update({
-    id: '/lovable/email/transactional/preview',
-    path: '/lovable/email/transactional/preview',
-    getParentRoute: () => rootRouteImport,
-  } as any)
+const ApiPublicCronPedidosRoute = ApiPublicCronPedidosRouteImport.update({
+  id: '/api/public/cron/pedidos',
+  path: '/api/public/cron/pedidos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicWebhooksMercadopagoRoute =
   ApiPublicWebhooksMercadopagoRouteImport.update({
     id: '/api/public/webhooks/mercadopago',
     path: '/api/public/webhooks/mercadopago',
     getParentRoute: () => rootRouteImport,
   } as any)
-const ApiPublicCronPedidosRoute = ApiPublicCronPedidosRouteImport.update({
-  id: '/api/public/cron/pedidos',
-  path: '/api/public/cron/pedidos',
-  getParentRoute: () => rootRouteImport,
-} as any)
+const LovableEmailTransactionalPreviewRoute =
+  LovableEmailTransactionalPreviewRouteImport.update({
+    id: '/lovable/email/transactional/preview',
+    path: '/lovable/email/transactional/preview',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -212,39 +212,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/termos': {
-      id: '/termos'
-      path: '/termos'
-      fullPath: '/termos'
-      preLoaderRoute: typeof TermosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/privacidade': {
-      id: '/privacidade'
-      path: '/privacidade'
-      fullPath: '/privacidade'
-      preLoaderRoute: typeof PrivacidadeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/meus-pedidos': {
-      id: '/meus-pedidos'
-      path: '/meus-pedidos'
-      fullPath: '/meus-pedidos'
-      preLoaderRoute: typeof MeusPedidosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/checkout': {
-      id: '/checkout'
-      path: '/checkout'
-      fullPath: '/checkout'
-      preLoaderRoute: typeof CheckoutRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth': {
-      id: '/auth'
-      path: '/auth'
-      fullPath: '/auth'
-      preLoaderRoute: typeof AuthRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin': {
@@ -254,11 +226,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/checkout': {
+      id: '/checkout'
+      path: '/checkout'
+      fullPath: '/checkout'
+      preLoaderRoute: typeof CheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/meus-pedidos': {
+      id: '/meus-pedidos'
+      path: '/meus-pedidos'
+      fullPath: '/meus-pedidos'
+      preLoaderRoute: typeof MeusPedidosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privacidade': {
+      id: '/privacidade'
+      path: '/privacidade'
+      fullPath: '/privacidade'
+      preLoaderRoute: typeof PrivacidadeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/termos': {
+      id: '/termos'
+      path: '/termos'
+      fullPath: '/termos'
+      preLoaderRoute: typeof TermosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/checkout/': {
@@ -268,19 +268,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof CheckoutIndexRouteImport
       parentRoute: typeof CheckoutRoute
     }
-    '/pedido/$pedidoId': {
-      id: '/pedido/$pedidoId'
-      path: '/pedido/$pedidoId'
-      fullPath: '/pedido/$pedidoId'
-      preLoaderRoute: typeof PedidoPedidoIdRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/checkout/sucesso': {
       id: '/checkout/sucesso'
       path: '/sucesso'
       fullPath: '/checkout/sucesso'
       preLoaderRoute: typeof CheckoutSucessoRouteImport
       parentRoute: typeof CheckoutRoute
+    }
+    '/pedido/$pedidoId': {
+      id: '/pedido/$pedidoId'
+      path: '/pedido/$pedidoId'
+      fullPath: '/pedido/$pedidoId'
+      preLoaderRoute: typeof PedidoPedidoIdRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/public/produtos-imagem': {
       id: '/api/public/produtos-imagem'
@@ -289,11 +289,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicProdutosImagemRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/lovable/email/transactional/preview': {
-      id: '/lovable/email/transactional/preview'
-      path: '/lovable/email/transactional/preview'
-      fullPath: '/lovable/email/transactional/preview'
-      preLoaderRoute: typeof LovableEmailTransactionalPreviewRouteImport
+    '/api/public/cron/pedidos': {
+      id: '/api/public/cron/pedidos'
+      path: '/api/public/cron/pedidos'
+      fullPath: '/api/public/cron/pedidos'
+      preLoaderRoute: typeof ApiPublicCronPedidosRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/webhooks/mercadopago': {
@@ -303,11 +303,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicWebhooksMercadopagoRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/cron/pedidos': {
-      id: '/api/public/cron/pedidos'
-      path: '/api/public/cron/pedidos'
-      fullPath: '/api/public/cron/pedidos'
-      preLoaderRoute: typeof ApiPublicCronPedidosRouteImport
+    '/lovable/email/transactional/preview': {
+      id: '/lovable/email/transactional/preview'
+      path: '/lovable/email/transactional/preview'
+      fullPath: '/lovable/email/transactional/preview'
+      preLoaderRoute: typeof LovableEmailTransactionalPreviewRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
