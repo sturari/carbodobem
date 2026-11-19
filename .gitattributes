@@ -1,0 +1,11 @@
+# Travas de dependências: nunca mesclar automaticamente (gera trava quebrada).
+bun.lock merge=binary
+package-lock.json merge=binary
+yarn.lock merge=binary
+
+# Normalizar finais de linha no texto do projeto.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
