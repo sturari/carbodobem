@@ -8,13 +8,11 @@ import {
   Scripts,
   type ErrorComponentProps,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
-import { reportLovableError } from "../lib/lovable-error-reporting";
 import { CookieConsent } from "../components/CookieConsent";
 import { Toaster } from "../components/ui/sonner";
-
 
 function NotFoundComponent() {
   return (
@@ -41,9 +39,6 @@ function NotFoundComponent() {
 function ErrorComponent({ error, reset }: ErrorComponentProps) {
   console.error(error);
   const router = useRouter();
-  useEffect(() => {
-    reportLovableError(error, { boundary: "tanstack_root_error_component" });
-  }, [error]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -90,14 +85,17 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:title", content: "Carbo do Bem — Comida de verdade ultracongelada" },
       {
         property: "og:description",
-        content: "Refeições artesanais saudáveis e ultracongeladas com entrega agendada em Brasília. Peça em poucos cliques e receba no conforto da sua casa.",
+        content:
+          "Refeições artesanais saudáveis e ultracongeladas com entrega agendada em Brasília. Peça em poucos cliques e receba no conforto da sua casa.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: "Carbo do Bem — Comida de verdade ultracongelada" },
-      { name: "twitter:description", content: "Refeições artesanais saudáveis e ultracongeladas com entrega agendada em Brasília. Peça em poucos cliques e receba no conforto da sua casa." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/d2ffe429-2502-4813-9d22-a16512c75f1b/id-preview-d92861c4--58f6f86b-1d2b-449d-b777-7408cba43a69.lovable.app-1784156620827.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/d2ffe429-2502-4813-9d22-a16512c75f1b/id-preview-d92861c4--58f6f86b-1d2b-449d-b777-7408cba43a69.lovable.app-1784156620827.png" },
+      {
+        name: "twitter:description",
+        content:
+          "Refeições artesanais saudáveis e ultracongeladas com entrega agendada em Brasília. Peça em poucos cliques e receba no conforto da sua casa.",
+      },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
@@ -119,12 +117,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         async: true,
       },
       {
-        children:
-          "gtag('js', new Date());gtag('config', 'G-JYBX279K6D6');",
+        children: "gtag('js', new Date());gtag('config', 'G-JYBX279K6D6');",
       },
     ],
-
-
   }),
   shellComponent: RootShell,
   component: RootComponent,
@@ -158,4 +153,3 @@ function RootComponent() {
     </QueryClientProvider>
   );
 }
-

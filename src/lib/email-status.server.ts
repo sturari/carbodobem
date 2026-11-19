@@ -1,8 +1,8 @@
 /**
  * Consulta o status do último envio de e-mail de um pedido de convidado
- * usando os logs de entrega do provedor gerenciado (envio real, não stub).
+ * usando a lista de envios do Resend (envio real, não stub).
  */
-import { listEmailLogs, EmailAPIError } from "@lovable.dev/email-js";
+import { Resend } from "resend";
 
 export type StatusEnvio =
   | "enviado"
@@ -28,14 +28,20 @@ export type StatusEnvioEmail = {
   janela_reset_segundos: number;
 };
 
+// Último evento do Resend -> status exibido ao cliente.
 const EVENTOS: Record<string, StatusEnvio> = {
+  queued: "enviado",
+  scheduled: "enviado",
   sent: "enviado",
-  rejected: "rejeitado",
+  delivered: "enviado",
+  delivery_delayed: "enviado",
+  opened: "enviado",
+  clicked: "enviado",
+  failed: "rejeitado",
+  canceled: "rejeitado",
   bounced: "devolvido",
   complained: "reclamacao",
-  unsubscribed: "descadastrado",
   suppressed: "bloqueado",
-  rate_limited: "limitado",
 };
 
 export function mascararEmail(email: string): string {
@@ -45,32 +51,31 @@ export function mascararEmail(email: string): string {
   return `${visivel}${"*".repeat(Math.max(2, local.length - visivel.length))}@${dominio}`;
 }
 
-/** Traduz o último evento de entrega para o status exibido ao cliente. */
+/**
+ * Traduz o último evento de entrega para o status exibido ao cliente.
+ * A API do Resend não filtra por destinatário, então olhamos os envios
+ * mais recentes da conta (até 100) e ficamos com o último para o e-mail.
+ */
 export async function consultarUltimoEnvio(
   email: string,
-  label = "pedido-confirmado",
 ): Promise<{ status: StatusEnvio; detalhe: string | null; em: string | null }> {
-  const apiKey = process.env["LOVABLE_API_KEY"];
+  const apiKey = process.env["RESEND_API_KEY"];
   if (!apiKey) return { status: "indisponivel", detalhe: null, em: null };
 
   try {
-    const res = await listEmailLogs({ recipient: email, limit: 25 }, { apiKey });
-    const eventos = (res.data ?? [])
-      .filter((e) => !e.tags?.length || e.tags.includes(label))
-      .sort(
-        (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
-      );
-    const ultimo = eventos[0];
+    const { data, error } = await new Resend(apiKey).emails.list({ limit: 100 });
+    if (error) return { status: "indisponivel", detalhe: error.name, em: null };
+    const alvo = email.trim().toLowerCase();
+    const ultimo = (data?.data ?? [])
+      .filter((e) => e.to?.some((t) => t.trim().toLowerCase() === alvo))
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0];
     if (!ultimo) return { status: "sem_registro", detalhe: null, em: null };
     return {
-      status: EVENTOS[ultimo.event_type] ?? "indisponivel",
-      detalhe: ultimo.status ?? null,
-      em: ultimo.timestamp,
+      status: EVENTOS[ultimo.last_event] ?? "indisponivel",
+      detalhe: ultimo.last_event ?? null,
+      em: ultimo.created_at,
     };
-  } catch (error) {
-    if (error instanceof EmailAPIError) {
-      return { status: "indisponivel", detalhe: error.code ?? null, em: null };
-    }
+  } catch {
     return { status: "indisponivel", detalhe: null, em: null };
   }
 }

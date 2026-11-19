@@ -22,7 +22,6 @@ import { Route as PedidoPedidoIdRouteImport } from './routes/pedido.$pedidoId'
 import { Route as ApiPublicProdutosImagemRouteImport } from './routes/api/public/produtos-imagem'
 import { Route as ApiPublicCronPedidosRouteImport } from './routes/api/public/cron/pedidos'
 import { Route as ApiPublicWebhooksMercadopagoRouteImport } from './routes/api/public/webhooks/mercadopago'
-import { Route as LovableEmailTransactionalPreviewRouteImport } from './routes/lovable/email/transactional/preview'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -90,12 +89,6 @@ const ApiPublicWebhooksMercadopagoRoute =
     path: '/api/public/webhooks/mercadopago',
     getParentRoute: () => rootRouteImport,
   } as any)
-const LovableEmailTransactionalPreviewRoute =
-  LovableEmailTransactionalPreviewRouteImport.update({
-    id: '/lovable/email/transactional/preview',
-    path: '/lovable/email/transactional/preview',
-    getParentRoute: () => rootRouteImport,
-  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -111,7 +104,6 @@ export interface FileRoutesByFullPath {
   '/api/public/produtos-imagem': typeof ApiPublicProdutosImagemRoute
   '/api/public/cron/pedidos': typeof ApiPublicCronPedidosRoute
   '/api/public/webhooks/mercadopago': typeof ApiPublicWebhooksMercadopagoRoute
-  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -126,7 +118,6 @@ export interface FileRoutesByTo {
   '/api/public/produtos-imagem': typeof ApiPublicProdutosImagemRoute
   '/api/public/cron/pedidos': typeof ApiPublicCronPedidosRoute
   '/api/public/webhooks/mercadopago': typeof ApiPublicWebhooksMercadopagoRoute
-  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -143,7 +134,6 @@ export interface FileRoutesById {
   '/api/public/produtos-imagem': typeof ApiPublicProdutosImagemRoute
   '/api/public/cron/pedidos': typeof ApiPublicCronPedidosRoute
   '/api/public/webhooks/mercadopago': typeof ApiPublicWebhooksMercadopagoRoute
-  '/lovable/email/transactional/preview': typeof LovableEmailTransactionalPreviewRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -161,7 +151,6 @@ export interface FileRouteTypes {
     | '/api/public/produtos-imagem'
     | '/api/public/cron/pedidos'
     | '/api/public/webhooks/mercadopago'
-    | '/lovable/email/transactional/preview'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -176,7 +165,6 @@ export interface FileRouteTypes {
     | '/api/public/produtos-imagem'
     | '/api/public/cron/pedidos'
     | '/api/public/webhooks/mercadopago'
-    | '/lovable/email/transactional/preview'
   id:
     | '__root__'
     | '/'
@@ -192,7 +180,6 @@ export interface FileRouteTypes {
     | '/api/public/produtos-imagem'
     | '/api/public/cron/pedidos'
     | '/api/public/webhooks/mercadopago'
-    | '/lovable/email/transactional/preview'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -207,7 +194,6 @@ export interface RootRouteChildren {
   ApiPublicProdutosImagemRoute: typeof ApiPublicProdutosImagemRoute
   ApiPublicCronPedidosRoute: typeof ApiPublicCronPedidosRoute
   ApiPublicWebhooksMercadopagoRoute: typeof ApiPublicWebhooksMercadopagoRoute
-  LovableEmailTransactionalPreviewRoute: typeof LovableEmailTransactionalPreviewRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -303,13 +289,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicWebhooksMercadopagoRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/lovable/email/transactional/preview': {
-      id: '/lovable/email/transactional/preview'
-      path: '/lovable/email/transactional/preview'
-      fullPath: '/lovable/email/transactional/preview'
-      preLoaderRoute: typeof LovableEmailTransactionalPreviewRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
@@ -339,7 +318,6 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicProdutosImagemRoute: ApiPublicProdutosImagemRoute,
   ApiPublicCronPedidosRoute: ApiPublicCronPedidosRoute,
   ApiPublicWebhooksMercadopagoRoute: ApiPublicWebhooksMercadopagoRoute,
-  LovableEmailTransactionalPreviewRoute: LovableEmailTransactionalPreviewRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

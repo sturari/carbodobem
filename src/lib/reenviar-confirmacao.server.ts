@@ -42,11 +42,13 @@ export async function reenviarConfirmacaoConvidado(params: {
     throw new Error("E-mail não corresponde ao pedido.");
   }
 
-  const itens = ((pedido.itens_pedido ?? []) as Array<{
-    quantidade: number;
-    preco_unitario: number;
-    produtos: { nome: string } | null;
-  }>).map((it) => ({
+  const itens = (
+    (pedido.itens_pedido ?? []) as Array<{
+      quantidade: number;
+      preco_unitario: number;
+      produtos: { nome: string } | null;
+    }>
+  ).map((it) => ({
     nome: it.produtos?.nome ?? "Item",
     quantidade: it.quantidade,
     preco_unitario: Number(it.preco_unitario),
@@ -86,8 +88,8 @@ export async function reenviarConfirmacaoConvidado(params: {
     }
     return { ok: true };
   } catch (error) {
-    const { EmailAPIError } = await import("@lovable.dev/email-js");
-    if (error instanceof EmailAPIError) {
+    const { EmailSendError } = await import("@/lib/email-templates/email-errors");
+    if (error instanceof EmailSendError) {
       console.error("[reenvio-confirmacao] falha no provedor", {
         pedido: pedido.id,
         code: error.code,
@@ -109,7 +111,7 @@ export async function reenviarConfirmacaoConvidado(params: {
             "O envio de e-mails está temporariamente desativado. Use este link para acompanhar o pedido.",
         };
       }
-      if (error.status === 429) {
+      if (error.code === "rate_limited") {
         const espera = error.retryAfterSeconds ?? 60;
         return {
           ok: false,
@@ -128,8 +130,7 @@ export async function reenviarConfirmacaoConvidado(params: {
     return {
       ok: false,
       motivo: "falha_provedor",
-      mensagem:
-        "Não conseguimos enviar o e-mail agora. Tente novamente em alguns minutos.",
+      mensagem: "Não conseguimos enviar o e-mail agora. Tente novamente em alguns minutos.",
     };
   }
 }

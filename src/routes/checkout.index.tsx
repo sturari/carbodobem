@@ -123,7 +123,7 @@ function CheckoutPage() {
     const devEmail = (import.meta.env.VITE_DEV_EMAIL as string | undefined) ?? "";
     const devCpfRaw = (import.meta.env.VITE_DEV_CPF as string | undefined) ?? "";
     setCliente({
-      nome: (import.meta.env.VITE_DEV_NOME as string | undefined) ?? "Teste Lovable",
+      nome: (import.meta.env.VITE_DEV_NOME as string | undefined) ?? "Cliente Teste",
       telefone: (import.meta.env.VITE_DEV_TELEFONE as string | undefined) ?? "(61) 99999-9999",
       email: devEmail,
       cpf: devCpfRaw.replace(/\D/g, ""),

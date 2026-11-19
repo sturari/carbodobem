@@ -81,7 +81,7 @@ export function getPublicAppUrl(origin?: string) {
   if (envUrl) return envUrl.replace(/\/$/, "");
   const safeOrigin = normalizarOrigin(origin);
   if (safeOrigin) return safeOrigin;
-  return "https://project--58f6f86b-1d2b-449d-b777-7408cba43a69.lovable.app";
+  return "https://carbodobem.com.br";
 }
 
 export function getMercadoPagoConfig() {

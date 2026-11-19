@@ -3,7 +3,8 @@ import { LogIn, LogOut, ShoppingBag, User } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useCart } from "@/lib/cart-store";
 import { supabase } from "@/integrations/supabase/client";
-import logo from "@/assets/principal-verde.jpg.asset.json";
+// Logo servido de public/principal-verde.jpg (antes ficava no armazenamento do Lovable).
+const LOGO_URL = "/principal-verde.jpg";
 
 export function Header() {
   const total = useCart((s) => s.totalItens());
@@ -34,7 +35,7 @@ export function Header() {
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4">
         <Link to="/" className="flex items-center gap-2 group">
           <img
-            src={logo.url}
+            src={LOGO_URL}
             alt="Carbo do Bem"
             className="h-10 w-10 rounded-full object-cover"
           />

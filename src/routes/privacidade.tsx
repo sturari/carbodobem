@@ -149,11 +149,11 @@ function PrivacidadePage() {
               (operador/controlador próprio);
             </li>
             <li>
-              <strong>Lovable e Supabase</strong> — hospedagem do site, banco de dados e
+              <strong>Vercel e Supabase</strong> — hospedagem do site, banco de dados e
               autenticação;
             </li>
             <li>
-              <strong>Provedor de e-mail</strong> — envio das mensagens transacionais a
+              <strong>Resend</strong> — envio das mensagens transacionais a
               partir de notify.{EMPRESA.site};
             </li>
             <li>
