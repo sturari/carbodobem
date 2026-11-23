@@ -59,7 +59,7 @@ function AdminPage() {
     (async () => {
       const { data } = await supabase.auth.getSession();
       if (!data.session) {
-        navigate({ to: "/auth" });
+        navigate({ to: "/auth", search: { redirect: "/admin" } });
         return;
       }
       try {
@@ -71,7 +71,7 @@ function AdminPage() {
         }
         setAuthorized(true);
       } catch {
-        navigate({ to: "/auth" });
+        navigate({ to: "/auth", search: { redirect: "/admin" } });
       } finally {
         if (!cancelled) setChecked(true);
       }
@@ -98,7 +98,7 @@ function AdminPage() {
           <button
             onClick={async () => {
               await supabase.auth.signOut();
-              navigate({ to: "/auth" });
+              navigate({ to: "/auth", search: { redirect: "/admin" } });
             }}
             className="rounded-md border border-input px-3 py-1.5 text-sm"
           >
