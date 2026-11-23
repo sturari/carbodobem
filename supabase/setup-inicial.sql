@@ -410,6 +410,17 @@ GRANT SELECT ON public.areas_cobertura TO anon, authenticated;
 GRANT ALL ON public.areas_cobertura TO service_role;
 NOTIFY pgrst, 'reload schema';
 
+-- ===== 20261123180000_grants_painel_admin.sql =====
+-- Permissões de tabela para usuários logados (role "authenticated").
+-- O painel /admin lê pedidos/clientes/endereços/itens e gerencia produtos
+-- com o token do usuário; quem pode de fato é decidido pelas políticas RLS
+-- (has_role admin). Sem estes GRANTs o Postgres nega antes de chegar na RLS
+-- ("permission denied for table ...").
+GRANT SELECT, UPDATE ON public.pedidos TO authenticated;
+GRANT SELECT ON public.clientes, public.enderecos, public.itens_pedido TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.produtos TO authenticated;
+
+
 -- ===== Bucket privado das fotos dos produtos (criado pelo Lovable fora das migrações) =====
 INSERT INTO storage.buckets (id, name, public) VALUES ('produtos', 'produtos', false)
 ON CONFLICT (id) DO NOTHING;
