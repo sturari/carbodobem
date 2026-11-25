@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import React, { useState } from "react";
-import { ArrowLeft, Loader2 } from "lucide-react";
+import { ArrowLeft, Loader2, Minus, Plus, Trash2 } from "lucide-react";
 import { type ItemCarrinho, useCart } from "@/lib/cart-store";
 import { formatBRL, formatCEP, formatCPF, formatTelefone } from "@/lib/format";
 import { PagamentoMP } from "@/components/PagamentoMP";
@@ -46,12 +46,15 @@ const SALMAO_DEV: ItemCarrinho | null = import.meta.env.DEV
   : null;
 
 function CheckoutPage() {
-  const { itens, limpar, adicionar } = useCart();
+  const { itens, limpar, adicionar, setQuantidade, remover } = useCart();
 
   const [hydrated, setHydrated] = useState(false);
   const [signedIn, setSignedIn] = useState(false);
   const [isDev, setIsDev] = useState(false);
   const [etapa, setEtapa] = useState<EtapaCheckout>(1);
+  // Edição dos itens no resumo ("Alterar pedido") e trava após gerar o pagamento.
+  const [editandoItens, setEditandoItens] = useState(false);
+  const [pedidoCriado, setPedidoCriado] = useState(false);
 
   const form = useCheckoutForm();
   const {
@@ -153,7 +156,7 @@ function CheckoutPage() {
     );
   }
 
-  if (itensCheckout.length === 0 && etapa < 5 && !isDev) {
+  if (itensCheckout.length === 0 && !pedidoCriado && !isDev) {
     return (
       <div className="mx-auto max-w-md p-8 text-center">
         <h1 className="font-display text-2xl font-bold">Carrinho vazio</h1>
@@ -358,7 +361,11 @@ function CheckoutPage() {
                   observacoes: obs || null,
                 }}
                 valorTotal={totalComFrete}
-                onCriado={() => limpar()}
+                onCriado={() => {
+                  setPedidoCriado(true);
+                  setEditandoItens(false);
+                  limpar();
+                }}
               />
             )}
 
@@ -404,14 +411,65 @@ function CheckoutPage() {
             <h3 className="font-display font-bold">Resumo</h3>
             <ul className="mt-3 space-y-2 text-sm">
               {itensCheckout.map((i) => (
-                <li key={i.id} className="flex justify-between gap-2">
-                  <span className="text-muted-foreground">
-                    {i.quantidade}× {i.nome}
-                  </span>
-                  <span className="font-medium">{formatBRL(i.preco * i.quantidade)}</span>
+                <li key={i.id} className="flex items-center justify-between gap-2">
+                  {editandoItens ? (
+                    <>
+                      <span className="min-w-0 flex-1 truncate text-muted-foreground">{i.nome}</span>
+                      <span className="inline-flex shrink-0 items-center gap-1">
+                        <button
+                          type="button"
+                          aria-label={`Diminuir ${i.nome}`}
+                          onClick={() => setQuantidade(i.id, i.quantidade - 1)}
+                          className="rounded-full border border-border p-1 hover:bg-muted"
+                        >
+                          <Minus className="h-3.5 w-3.5" />
+                        </button>
+                        <span className="w-6 text-center font-medium">{i.quantidade}</span>
+                        <button
+                          type="button"
+                          aria-label={`Aumentar ${i.nome}`}
+                          onClick={() => setQuantidade(i.id, i.quantidade + 1)}
+                          className="rounded-full border border-border p-1 hover:bg-muted"
+                        >
+                          <Plus className="h-3.5 w-3.5" />
+                        </button>
+                        <button
+                          type="button"
+                          aria-label={`Remover ${i.nome}`}
+                          onClick={() => remover(i.id)}
+                          className="ml-1 rounded-full p-1 text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-muted-foreground">
+                        {i.quantidade}× {i.nome}
+                      </span>
+                      <span className="font-medium">{formatBRL(i.preco * i.quantidade)}</span>
+                    </>
+                  )}
                 </li>
               ))}
             </ul>
+            {itens.length > 0 && !pedidoCriado && (
+              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1">
+                <button
+                  type="button"
+                  onClick={() => setEditandoItens((v) => !v)}
+                  className="rounded-full border border-border px-3 py-1.5 text-xs font-semibold hover:bg-muted"
+                >
+                  {editandoItens ? "Concluir alteração" : "Alterar pedido"}
+                </button>
+                {editandoItens && (
+                  <Link to="/" className="text-xs font-medium text-primary underline">
+                    + Adicionar produtos
+                  </Link>
+                )}
+              </div>
+            )}
             <div className="mt-4 space-y-1.5 border-t border-border/60 pt-4 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Subtotal</span>
