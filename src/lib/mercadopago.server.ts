@@ -270,13 +270,28 @@ export async function criarCheckoutMercadoPago(data: CriarCheckoutInput) {
 
   const payer = payerFromCliente(data.cliente, base.cpfCliente);
   const preferenceBody = {
-    items: base.itensCalc.map((item) => ({
-      id: item.produto_id,
-      title: item.nome,
-      quantity: item.quantidade,
-      unit_price: item.preco_unitario,
-      currency_id: "BRL",
-    })),
+    items: [
+      ...base.itensCalc.map((item) => ({
+        id: item.produto_id,
+        title: item.nome,
+        quantity: item.quantidade,
+        unit_price: item.preco_unitario,
+        currency_id: "BRL",
+      })),
+      // A taxa de entrega também é cobrada: sem este item o cliente pagaria
+      // só o subtotal e o valor não bateria com o pedido (valor_total).
+      ...(base.taxaEntrega > 0
+        ? [
+            {
+              id: "taxa-entrega",
+              title: "Taxa de entrega",
+              quantity: 1,
+              unit_price: Number(base.taxaEntrega.toFixed(2)),
+              currency_id: "BRL",
+            },
+          ]
+        : []),
+    ],
     payer: {
       name: data.cliente.nome,
       ...payer,

@@ -11,6 +11,16 @@ import {
   regerarPagamentoPix,
 } from "@/lib/mercadopago.functions";
 import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { formatBRL } from "@/lib/format";
 import {
   calcularOpcoesParcelas,
@@ -110,6 +120,8 @@ export function PagamentoMP({ dados, valorTotal, onCriado }: Props) {
     null,
   );
 
+  const [confirmandoTroca, setConfirmandoTroca] = useState(false);
+
   function handlePedidoCriado(id: string, m: Metodo) {
     setPedidoAtivo({ id, metodo: m });
   }
@@ -119,15 +131,13 @@ export function PagamentoMP({ dados, valorTotal, onCriado }: Props) {
       setMetodo(null);
       return;
     }
-    const ok = window.confirm(
-      `Você já iniciou um pagamento (pedido #${pedidoAtivo.id.slice(0, 8)}). ` +
-        `Se trocar de método, este pedido permanece pendente até você concluir ou ` +
-        `ele expirar. Deseja continuar mesmo assim?`,
-    );
-    if (ok) {
-      setPedidoAtivo(null);
-      setMetodo(null);
-    }
+    setConfirmandoTroca(true);
+  }
+
+  function confirmarTroca() {
+    setConfirmandoTroca(false);
+    setPedidoAtivo(null);
+    setMetodo(null);
   }
 
   return (
@@ -205,6 +215,24 @@ export function PagamentoMP({ dados, valorTotal, onCriado }: Props) {
           onVoltar={tentarVoltar}
         />
       )}
+
+      <AlertDialog open={confirmandoTroca} onOpenChange={setConfirmandoTroca}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Trocar de método de pagamento?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Você já iniciou um pagamento
+              {pedidoAtivo ? ` (pedido #${pedidoAtivo.id.slice(0, 8)})` : ""}. Se trocar de
+              método, este pedido permanece pendente até você concluir o pagamento ou ele
+              expirar.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Continuar neste pagamento</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmarTroca}>Trocar de método</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
